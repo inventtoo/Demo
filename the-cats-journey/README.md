@@ -3,6 +3,11 @@
 Videojuego 2D de plataformas hecho **solo con HTML5, CSS3 y JavaScript puro**
 (Canvas API + Web Audio API). Sin frameworks, sin motores y sin recursos externos.
 
+Gráficos en **pixel art de estilo 32 bits** (sombreado con rampas de color,
+tramado/dithering, contornos selectivos y parallax de varias capas),
+dibujado a **640×360** y mostrado a **1280×720 (720p)** con cada píxel
+ampliado x2 sin suavizado.
+
 Milo, un pequeño gato naranja, debe atravesar el **Bosque Encantado**, las
 **Montañas Peligrosas** y el **Castillo del Rey Rata** para rescatar a Luna,
 su novia, secuestrada por el malvado villano.
@@ -41,17 +46,20 @@ ocultar en **Configuración**).
 
 ```
 the-cats-journey/
-├── index.html          Estructura: canvas, HUD, menús, diálogos y controles táctiles
-├── css/style.css       Estilos de la interfaz, botones, paneles y animaciones CSS
+├── index.html          Estructura: canvas de 1280x720, menús y controles táctiles
+├── css/style.css       Menús con estilo pixel art + fuente de píxeles "CatPixel" incrustada
 ├── js/
 │   ├── audio.js        Música y efectos generados con Web Audio API
-│   ├── physics.js      Constantes, colisiones AABB, gravedad y partículas
+│   ├── physics.js      Constantes (resolución, casillas, gravedad), colisiones AABB y partículas
+│   ├── pixelart.js     Herramientas de pixel art: PixelBuffer, sprites, tramado y la fuente de píxeles
+│   ├── sprites.js      Pixel art de Milo, Luna, enemigos, Rey Rata, objetos e iconos
+│   ├── scenery.js      Pixel art de los escenarios: fondos parallax, casillas, plataformas, trampas y decoración
 │   ├── camera.js       Cámara con scroll suave, límites, bloqueo y temblor
-│   ├── collectibles.js Monedas, corazones, estrellas, llaves (+ dibujos reutilizables)
+│   ├── collectibles.js Monedas, corazones, estrellas y llaves
 │   ├── enemies.js      Slime, seta, murciélago, jabalí, caballero, fantasma y jefe final
 │   ├── player.js       Milo: controles, física, salud, animaciones y proyectil
-│   ├── levels.js       Mapas de texto de los niveles, temas visuales, plataformas e historia
-│   ├── ui.js           Pantallas, HUD, diálogos, escenas de historia y configuración
+│   ├── levels.js       Mapas de texto de los niveles, elementos del escenario e historia
+│   ├── ui.js           Pantallas, HUD, diálogos con retratos y escenas de historia
 │   └── main.js         Entrada (teclado/táctil), estados del juego y bucle principal
 └── assets/
     ├── images/         (opcional, el juego no necesita imágenes)
@@ -61,10 +69,30 @@ the-cats-journey/
 Los scripts se cargan en ese orden desde `index.html` (sin módulos ES, para
 que funcione al abrir el archivo directamente).
 
+## Cómo funciona el pixel art
+
+- Todo el juego se pinta en un lienzo de **640×360 píxeles** y después se
+  amplía x2 al canvas visible de **1280×720** con el suavizado desactivado
+  (`imageSmoothingEnabled = false` e `image-rendering: pixelated`).
+- **Personajes** (`js/sprites.js`): están dibujados a mano como rejillas de
+  texto, donde cada carácter es un píxel y una paleta le da color. Los gatos
+  se montan por piezas (cabeza, cuerpo, patas y cola), así una sola cabeza
+  sirve para todas las animaciones. Luna usa el mismo dibujo que Milo con
+  otra paleta y un lazo.
+- **Escenarios** (`js/scenery.js`): se generan píxel a píxel por código. Los
+  cielos usan bandas de color con tramado, las montañas tienen laderas
+  iluminadas y nieve, y las casillas de suelo cambian sus bordes según sus
+  vecinas (césped, nieve o almenas).
+- **Texto**: la fuente de píxeles (con tildes, ñ, ¡ y ¿) se define en
+  `js/pixelart.js` y se usa tanto en el canvas como en los menús HTML.
+
+Para cambiar el aspecto de un personaje basta con editar su rejilla o su
+paleta en `js/sprites.js`.
+
 ## Cómo modificar o crear niveles
 
 Cada nivel de `js/levels.js` es un **mapa de texto** donde cada carácter es
-una casilla de 40×40 píxeles. La leyenda completa está al principio del
+una casilla de 24×24 píxeles (15 filas de alto). La leyenda completa está al principio del
 archivo. Por ejemplo, `#` es suelo, `=` una plataforma, `o` una moneda,
 `s` un slime y `F` la meta. Basta con editar el texto para cambiar el nivel.
 

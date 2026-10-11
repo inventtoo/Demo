@@ -10,11 +10,13 @@
 'use strict';
 
 const CONFIG = {
-  VIEW_WIDTH: 960,        // Resolución interna del canvas (píxeles lógicos)
-  VIEW_HEIGHT: 560,
-  TILE_SIZE: 40,          // Tamaño de cada casilla de los mapas de nivel
-  GRAVITY: 1900,          // Aceleración de la gravedad (px/s²)
-  MAX_FALL_SPEED: 950,    // Velocidad máxima de caída (px/s)
+  VIEW_WIDTH: 640,        // Resolución del arte: 640x360 píxeles de pixel art...
+  VIEW_HEIGHT: 360,
+  OUTPUT_WIDTH: 1280,     // ...que se amplían x2 a una imagen final de 1280x720 (720p)
+  OUTPUT_HEIGHT: 720,
+  TILE_SIZE: 24,          // Tamaño de cada casilla de los mapas de nivel
+  GRAVITY: 1140,          // Aceleración de la gravedad (px/s²)
+  MAX_FALL_SPEED: 570,    // Velocidad máxima de caída (px/s)
   MAX_PHYSICS_STEP: 1 / 120 // Paso máximo de simulación para colisiones precisas
 };
 
@@ -176,28 +178,23 @@ class ParticleSystem {
     this.particles = this.particles.filter((particle) => particle.life > 0);
   }
 
+  /** Las partículas se dibujan como píxeles cuadrados (o mini sprites de corazón/estrella). */
   draw(ctx) {
     for (const particle of this.particles) {
-      const alpha = clamp(particle.life / particle.maxLife, 0, 1);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = particle.color;
-      if (particle.shape === 'square') {
-        ctx.save();
-        ctx.translate(particle.x, particle.y);
-        ctx.rotate(particle.rotation);
-        ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size);
-        ctx.restore();
-      } else if (particle.shape === 'heart') {
-        drawHeart(ctx, particle.x, particle.y, particle.size, particle.color);
-      } else if (particle.shape === 'star') {
-        drawStar(ctx, particle.x, particle.y, particle.size, particle.size * 0.45, 5, particle.color, particle.rotation);
-      } else {
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fill();
+      const lifeRatio = clamp(particle.life / particle.maxLife, 0, 1);
+      const x = Math.round(particle.x);
+      const y = Math.round(particle.y);
+      if (particle.shape === 'heart' || particle.shape === 'star') {
+        // Parpadean al final de su vida en lugar de volverse transparentes
+        if (lifeRatio < 0.3 && Math.floor(particle.life * 20) % 2 === 0) continue;
+        const icon = particle.shape === 'heart' ? SPRITES.icons.heart : SPRITES.icons.star;
+        icon.draw(ctx, x - 3, y - 3);
+        continue;
       }
+      const size = Math.max(1, Math.round(particle.size * (0.4 + lifeRatio * 0.6)));
+      ctx.fillStyle = particle.color;
+      ctx.fillRect(x - Math.floor(size / 2), y - Math.floor(size / 2), size, size);
     }
-    ctx.globalAlpha = 1;
   }
 
   clear() {

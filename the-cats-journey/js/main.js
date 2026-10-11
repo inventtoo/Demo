@@ -7,6 +7,11 @@
      historia, jugando, pausa...), carga los niveles, comprueba las
      interacciones entre el jugador, los enemigos y los objetos, y
      ejecuta el bucle con requestAnimationFrame.
+
+   Cómo se dibuja cada fotograma:
+   1. Todo se pinta en un lienzo pequeño de 640x360 (pixel art).
+   2. Ese lienzo se amplía x2, sin suavizado, al canvas visible de
+      1280x720 (720p). Así cada píxel del arte se ve nítido.
    ===================================================================== */
 'use strict';
 
@@ -81,10 +86,11 @@ const COINS_FOR_EXTRA_LIFE = 50;
 const STARTING_LIVES = 3;
 
 const Game = {
-  canvas: null,
+  canvas: null,        // canvas visible de 1280x720
   ctx: null,
-  renderScale: 1,
-  state: 'menu',      // menu | story | playing | paused | cutscene | levelComplete | rescue | gameover | victory
+  buffer: null,        // lienzo de pixel art de 640x360
+  bufferContext: null,
+  state: 'menu',       // menu | story | playing | paused | cutscene | levelComplete | rescue | gameover | victory | transition
   time: 0,
   lastTimestamp: 0,
 
@@ -100,6 +106,7 @@ const Game = {
   boss: null,
   storyScene: null,
   menuScene: null,
+  vignette: null,
 
   respawnPoint: null,
   hasKey: false,
@@ -108,13 +115,27 @@ const Game = {
   levelSnapshot: null,
   levelEndTimer: 0,
   rescueTimer: 0,
+  rescueElapsed: 0,
   doorMessageCooldown: 0,
+  deathHandled: false,
+  transitionFromStory: false,
 
   /* --------------------------- Inicialización --------------------------- */
 
   init() {
+    // Generamos todo el pixel art (sprites, fuente) antes de empezar
+    buildAllSprites();
+
     this.canvas = document.getElementById('game-canvas');
+    this.canvas.width = CONFIG.OUTPUT_WIDTH;
+    this.canvas.height = CONFIG.OUTPUT_HEIGHT;
     this.ctx = this.canvas.getContext('2d');
+    this.ctx.imageSmoothingEnabled = false;
+    this.buffer = createPixelCanvas(CONFIG.VIEW_WIDTH, CONFIG.VIEW_HEIGHT);
+    this.bufferContext = this.buffer.getContext('2d');
+    this.bufferContext.imageSmoothingEnabled = false;
+    this.vignette = this.buildVignette();
+
     this.camera = new Camera(CONFIG.VIEW_WIDTH, CONFIG.VIEW_HEIGHT);
     this.particles = new ParticleSystem();
     this.stats = this.createStats();
@@ -131,6 +152,10 @@ const Game = {
     });
     // Desbloqueo del audio con el primer toque o clic
     window.addEventListener('pointerdown', () => AudioManager.init());
+    // Clic o toque sobre el juego: avanza los diálogos
+    this.canvas.addEventListener('pointerdown', () => {
+      if (UI.dialogue.active) UI.advanceDialogue();
+    });
 
     this.goToMenu(true);
 
@@ -148,21 +173,33 @@ const Game = {
     return { coins: 0, stars: 0, enemiesDefeated: 0, livesLost: 0, playTime: 0 };
   },
 
-  /** Ajusta el tamaño del juego a la ventana manteniendo la proporción. */
+  /** Viñeta tramada para el castillo (esquinas oscuras hechas de píxeles). */
+  buildVignette() {
+    const buffer = new PixelBuffer(CONFIG.VIEW_WIDTH, CONFIG.VIEW_HEIGHT);
+    for (let y = 0; y < CONFIG.VIEW_HEIGHT; y++) {
+      for (let x = 0; x < CONFIG.VIEW_WIDTH; x++) {
+        const dx = (x - 320) / 320;
+        const dy = (y - 180) / 180;
+        const distance = Math.sqrt(dx * dx * 0.8 + dy * dy * 0.6);
+        if (distance > 0.75 && ditherAt(x, y, (distance - 0.75) * 1.4)) buffer.set(x, y, '#07050f');
+      }
+    }
+    return buffer.toCanvas();
+  },
+
+  /**
+   * Ajusta el tamaño del juego a la ventana manteniendo la proporción 16:9.
+   * La imagen interna siempre es de 1280x720; el navegador la escala con
+   * "image-rendering: pixelated" para conservar los píxeles nítidos.
+   */
   resize() {
     const container = document.getElementById('game-container');
-    const scale = Math.max(0.3, Math.min(window.innerWidth / CONFIG.VIEW_WIDTH, window.innerHeight / CONFIG.VIEW_HEIGHT));
-    const displayWidth = Math.floor(CONFIG.VIEW_WIDTH * scale);
-    const displayHeight = Math.floor(CONFIG.VIEW_HEIGHT * scale);
+    const scale = Math.max(0.25, Math.min(window.innerWidth / CONFIG.OUTPUT_WIDTH, window.innerHeight / CONFIG.OUTPUT_HEIGHT));
+    const displayWidth = Math.floor(CONFIG.OUTPUT_WIDTH * scale);
+    const displayHeight = Math.floor(CONFIG.OUTPUT_HEIGHT * scale);
     container.style.width = `${displayWidth}px`;
     container.style.height = `${displayHeight}px`;
-    container.style.fontSize = `${16 * scale}px`;
-
-    // Usamos la densidad de píxeles de la pantalla para que se vea nítido
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-    this.canvas.width = Math.round(displayWidth * pixelRatio);
-    this.canvas.height = Math.round(displayHeight * pixelRatio);
-    this.renderScale = this.canvas.width / CONFIG.VIEW_WIDTH;
+    container.style.fontSize = `${20 * scale}px`;
   },
 
   /** ¿Debe el juego "quedarse" con las teclas (y no los botones HTML)? */
@@ -212,20 +249,18 @@ const Game = {
 
   goToMenu(instant = false) {
     this.state = 'menu';
-    // Cerramos cualquier diálogo abierto sin ejecutar su continuación
-    UI.dialogue.active = false;
-    UI.dialogue.onComplete = null;
-    UI.elements.dialogue.classList.add('hidden');
+    UI.cancelDialogue();
     UI.showHUD(false);
     UI.showBossBar(false);
     UI.hideToast();
+    UI.levelTitle.timer = 0;
     UI.setPausedIndicator(false);
     UI.updateTouchVisibility(false);
     UI.showScreen('screen-menu');
     this.menuScene = new StoryScene({
       background: 'forest',
       hearts: true,
-      lines: [{ speaker: 'narrator', text: '', actors: { milo: { x: 430, pose: 'sit', facing: 1 }, luna: { x: 530, pose: 'sit', facing: -1 } } }]
+      lines: [{ speaker: 'narrator', text: '', actors: { milo: { x: 146, pose: 'sit', facing: 1 }, luna: { x: 174, pose: 'sit', facing: -1 } } }]
     });
     AudioManager.playMusic('menu');
     if (!instant) UI.elements.fade.classList.remove('visible');
@@ -245,15 +280,21 @@ const Game = {
   playStory(sceneName, onComplete) {
     const sceneData = STORY_SCENES[sceneName];
     this.state = 'story';
+    this.transitionFromStory = false;
     this.storyScene = new StoryScene(sceneData);
     UI.hideScreens();
     UI.showHUD(false);
     UI.showBossBar(false);
+    UI.hideToast();
     UI.updateTouchVisibility(false);
     AudioManager.playMusic(sceneName === 'ending' ? 'victory' : 'menu');
     UI.startDialogue(
       sceneData.lines,
-      () => UI.fade(onComplete),
+      () => {
+        this.state = 'transition';
+        this.transitionFromStory = true;
+        UI.fade(onComplete);
+      },
       (lineIndex) => this.storyScene.applyLine(lineIndex)
     );
   },
@@ -261,6 +302,7 @@ const Game = {
   /** Carga un nivel y coloca todos sus elementos. */
   loadLevel(index) {
     this.levelIndex = index;
+    this.transitionFromStory = false;
     this.level = new Level(index);
     this.enemies = this.level.enemies;
     this.collectibles = this.level.collectibles;
@@ -285,7 +327,6 @@ const Game = {
 
     this.state = 'playing';
     UI.hideScreens();
-    UI.resetHUDCache();
     UI.showHUD(true);
     UI.showBossBar(false);
     UI.setPausedIndicator(false);
@@ -333,9 +374,10 @@ const Game = {
     this.levelEndTimer = 2.2;
     AudioManager.stopMusic();
     AudioManager.play('levelComplete');
-    this.particles.emit(this.level.goal.x + 20, this.level.goal.y - 60, {
-      count: 30, color: ['#ffd23f', '#ff8c42', '#ffffff'], speed: 260, size: 5, life: 1.2, shape: 'star'
+    this.particles.emit(this.level.goal.x + 12, this.level.goal.y - 60, {
+      count: 30, color: ['#ffd23f', '#ff8c42', '#ffffff'], speed: 156, size: 3, life: 1.2
     });
+    this.particles.emit(this.level.goal.x + 12, this.level.goal.y - 60, { count: 8, speed: 120, life: 1.4, shape: 'star', gravity: 150 });
   },
 
   showLevelComplete() {
@@ -452,7 +494,7 @@ const Game = {
 
   update(dt) {
     this.time += dt;
-    UI.updateDialogue(dt);
+    UI.update(dt);
 
     switch (this.state) {
       case 'menu':
@@ -461,16 +503,17 @@ const Game = {
       case 'story':
       case 'victory':
         if (this.storyScene) this.storyScene.update(dt);
-        if (this.state === 'story' && (Input.wasPressed('confirm') || Input.wasPressed('jump'))) UI.advanceDialogue();
+        if (this.state === 'story') this.handleDialogueInput();
         break;
       case 'playing':
         this.updatePlaying(dt);
         break;
       case 'cutscene':
         // Diálogo dentro del nivel: el mundo se queda quieto, la cámara se mueve
-        if (Input.wasPressed('confirm') || Input.wasPressed('jump')) UI.advanceDialogue();
+        this.handleDialogueInput();
         this.camera.follow(this.player, dt);
         this.particles.update(dt);
+        if (this.level.cage) this.level.cage.update(dt, this);
         break;
       case 'rescue':
         this.updateRescue(dt);
@@ -484,6 +527,12 @@ const Game = {
       default:
         break;
     }
+  },
+
+  /** Espacio/Enter avanzan el diálogo; ESC lo salta. */
+  handleDialogueInput() {
+    if (Input.wasPressed('pause')) UI.skipDialogue();
+    else if (Input.wasPressed('confirm') || Input.wasPressed('jump')) UI.advanceDialogue();
   },
 
   updatePlaying(dt) {
@@ -510,12 +559,11 @@ const Game = {
 
     this.particles.update(dt);
     this.camera.follow(this.player, dt);
-    this.updateHUD();
 
     // Pequeña pausa celebrando antes de mostrar el resumen del nivel
     if (this.levelEndTimer > 0) {
       this.levelEndTimer -= dt;
-      if (this.player.onGround && Math.random() < 0.08) this.player.vy = -350;
+      if (this.player.onGround && Math.random() < 0.08) this.player.vy = -210;
       if (this.levelEndTimer <= 0) this.showLevelComplete();
     }
   },
@@ -544,9 +592,9 @@ const Game = {
     const camera = this.camera;
     for (const enemy of this.enemies) {
       // Solo actualizamos los enemigos cercanos a la pantalla (mejor rendimiento)
-      if (!enemy.isBoss && !camera.isVisible(enemy.x, enemy.y, enemy.w, enemy.h, 400)) continue;
+      if (!enemy.isBoss && !camera.isVisible(enemy.x, enemy.y, enemy.w, enemy.h, 240)) continue;
       enemy.update(dt, this);
-      if (enemy.y > this.level.height + 200) enemy.alive = false;
+      if (enemy.y > this.level.height + 120) enemy.alive = false;
     }
 
     const player = this.player;
@@ -567,7 +615,7 @@ const Game = {
   /** Decide si el jugador pisa al enemigo o recibe daño. */
   resolvePlayerEnemyContact(enemy) {
     const player = this.player;
-    const isFallingOnTop = player.vy > 0 && player.previousBottom <= enemy.y + 14;
+    const isFallingOnTop = player.vy > 0 && player.previousBottom <= enemy.y + 8;
 
     if (isFallingOnTop && enemy.stompable) {
       if (enemy.isBoss) {
@@ -577,13 +625,13 @@ const Game = {
         player.bounce(Input);
         if (!damaged) {
           AudioManager.play('deflect');
-          this.particles.emit(player.centerX, enemy.y, { count: 6, color: '#ffffff', speed: 120, size: 3, life: 0.3 });
+          this.particles.emit(player.centerX, enemy.y, { count: 6, color: '#ffffff', speed: 72, size: 2, life: 0.3 });
         }
       } else {
         enemy.hit(1, this, 'stomp');
         player.bounce(Input);
         AudioManager.play('stomp');
-        this.particles.emit(enemy.centerX, enemy.y, { count: 8, color: ['#ffffff', '#ffe066'], speed: 150, size: 3, life: 0.4, shape: 'star' });
+        this.particles.emit(enemy.centerX, enemy.y, { count: 8, color: ['#ffffff', '#ffe066'], speed: 90, size: 2, life: 0.4 });
       }
       this.countDefeat(enemy);
     } else if (enemy.harmful) {
@@ -596,6 +644,7 @@ const Game = {
     if (enemy.dying && !enemy.defeatCounted) {
       enemy.defeatCounted = true;
       this.stats.enemiesDefeated++;
+      this.particles.emit(enemy.centerX, enemy.centerY, { count: 10, color: ['#ffffff', '#d6d1e6', '#9b8fb0'], speed: 80, size: 3, life: 0.5, gravity: 0 });
     }
   },
 
@@ -649,7 +698,7 @@ const Game = {
       case 'coin':
         this.stats.coins++;
         AudioManager.play('coin');
-        this.particles.emit(centerX, centerY, { count: 6, color: ['#ffc93c', '#fff6c2'], speed: 100, size: 2.5, life: 0.4, gravity: 200 });
+        this.particles.emit(centerX, centerY, { count: 6, color: ['#ffc93c', '#fff6c2'], speed: 60, size: 2, life: 0.4, gravity: 120 });
         if (this.stats.coins % COINS_FOR_EXTRA_LIFE === 0) {
           this.lives++;
           AudioManager.play('oneUp');
@@ -659,19 +708,20 @@ const Game = {
       case 'heart':
         this.player.heal(1);
         AudioManager.play('heart');
-        this.particles.emit(centerX, centerY, { count: 6, color: '#ff4f6d', speed: 80, size: 6, life: 0.8, gravity: -80, shape: 'heart' });
+        this.particles.emit(centerX, centerY, { count: 4, speed: 48, life: 0.9, gravity: -48, shape: 'heart' });
         break;
       case 'star':
         this.stats.stars++;
         AudioManager.play('star');
         UI.showToast(`¡Estrella especial! (${this.stats.stars}/${TOTAL_STARS})`);
-        this.particles.emit(centerX, centerY, { count: 16, color: ['#ffe066', '#ffffff'], speed: 220, size: 5, life: 0.8, shape: 'star' });
+        this.particles.emit(centerX, centerY, { count: 16, color: ['#ffe066', '#ffffff'], speed: 132, size: 3, life: 0.8 });
+        this.particles.emit(centerX, centerY, { count: 4, speed: 90, life: 0.9, shape: 'star', gravity: 120 });
         break;
       case 'key':
         this.hasKey = true;
         AudioManager.play('key');
         UI.showToast('¡Has conseguido una llave!');
-        this.particles.emit(centerX, centerY, { count: 12, color: ['#ffd23f', '#ffffff'], speed: 160, size: 4, life: 0.6, shape: 'star' });
+        this.particles.emit(centerX, centerY, { count: 12, color: ['#ffd23f', '#ffffff'], speed: 96, size: 2, life: 0.6 });
         break;
       default:
         break;
@@ -691,14 +741,14 @@ const Game = {
     }
 
     for (const lava of level.lavaTiles) {
-      if (rectsOverlap(player, { x: lava.x, y: lava.y + 10, w: lava.w, h: lava.h })) {
-        this.particles.emit(player.centerX, player.y + player.h, { count: 20, color: ['#f77f00', '#fcbf49', '#d62828'], speed: 220, size: 5, life: 0.7 });
+      if (rectsOverlap(player, { x: lava.x, y: lava.y + 6, w: lava.w, h: lava.h })) {
+        this.particles.emit(player.centerX, player.y + player.h, { count: 20, color: ['#f77f00', '#fcbf49', '#d62828'], speed: 132, size: 3, life: 0.7 });
         player.die();
         return;
       }
     }
 
-    if (player.y > level.height + 40) player.die(true);
+    if (player.y > level.height + 24) player.die(true);
   },
 
   /** Puertas, banderas de control, meta y entrada a la sala del jefe. */
@@ -708,7 +758,7 @@ const Game = {
 
     for (const door of level.doors) {
       if (!door.active) continue;
-      const touchArea = { x: door.x - 4, y: door.y, w: door.w + 8, h: door.h };
+      const touchArea = { x: door.x - 2, y: door.y, w: door.w + 4, h: door.h };
       if (!rectsOverlap(player, touchArea)) continue;
       if (this.hasKey) {
         this.hasKey = false;
@@ -726,7 +776,7 @@ const Game = {
         this.respawnPoint = checkpoint.respawnPoint;
         AudioManager.play('checkpoint');
         UI.showToast('¡Punto de control!', 1500);
-        this.particles.emit(checkpoint.x + 20, checkpoint.y - 30, { count: 12, color: ['#4caf50', '#ffffff'], speed: 140, size: 4, life: 0.6, shape: 'star' });
+        this.particles.emit(checkpoint.x + 12, checkpoint.y - 18, { count: 12, color: ['#4caf50', '#ffffff', '#a8ef93'], speed: 84, size: 2, life: 0.6 });
       }
     }
 
@@ -752,31 +802,26 @@ const Game = {
     this.particles.update(dt);
     this.camera.follow(this.player, dt);
     this.stats.playTime += dt;
-    this.updateHUD();
 
     // La secuencia continúa cuando Luna llega junto a Milo (o tras unos segundos, por seguridad)
     const cage = this.level.cage;
-    this.rescueElapsed = (this.rescueElapsed || 0) + dt;
+    this.rescueElapsed += dt;
     if (!cage || cage.luna.reachedMilo || this.rescueElapsed > 8) {
       this.rescueTimer += dt;
-      if (Math.random() < dt * 6) {
-        const luna = cage ? cage.luna : this.player;
-        this.particles.emit((this.player.centerX + luna.x + 13) / 2, this.player.y - 10, {
-          count: 1, color: ['#ff4f6d', '#ff8fab'], speed: 50, size: 8, life: 1.5, gravity: -60, shape: 'heart'
-        });
+      if (Math.random() < dt * 5) {
+        const lunaX = cage ? cage.luna.x + 8 : this.player.centerX;
+        this.particles.emit((this.player.centerX + lunaX) / 2, this.player.y - 6, { count: 1, speed: 30, life: 1.5, gravity: -36, shape: 'heart' });
       }
       if (this.rescueTimer > 2 && this.state === 'rescue') {
         this.state = 'transition';
-        UI.fade(() => this.playStory('ending', () => {
-          this.state = 'victory';
-          this.showVictory();
-        }));
+        UI.fade(() => this.playStory('ending', () => this.showVictory()));
       }
     }
   },
 
-  updateHUD() {
-    UI.updateHUD({
+  /** Datos que muestra el HUD. */
+  getHUDData() {
+    return {
       health: Math.max(0, this.player.health),
       maxHealth: this.player.maxHealth,
       lives: this.lives,
@@ -786,24 +831,43 @@ const Game = {
       hasKey: this.hasKey,
       levelName: `${this.level.subtitle}: ${this.level.name}`,
       energy: 1 - this.player.shootCooldown / PLAYER_SETTINGS.SHOOT_COOLDOWN
-    });
+    };
   },
 
   /* -------------------------------- Dibujo -------------------------------- */
 
   render() {
-    const ctx = this.ctx;
-    ctx.setTransform(this.renderScale, 0, 0, this.renderScale, 0, 0);
+    const ctx = this.bufferContext;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = false;
 
     if (this.state === 'menu') {
       this.menuScene.draw(ctx);
-    } else if ((this.state === 'story' || this.state === 'victory') && this.storyScene) {
-      this.storyScene.draw(ctx);
-    } else if (this.state === 'transition' && !this.level && this.storyScene) {
+      this.drawTitleLogo(ctx);
+    } else if (this.storyScene && (this.state === 'story' || this.state === 'victory' || (this.state === 'transition' && this.transitionFromStory))) {
+      // Escena de historia (también durante el fundido al terminarla)
       this.storyScene.draw(ctx);
     } else if (this.level) {
       this.renderWorld(ctx);
+      if (this.level && this.player) {
+        UI.drawHUD(ctx, this.getHUDData(), this.time);
+        UI.drawBossBar(ctx);
+        UI.drawMessages(ctx, this.time);
+      }
     }
+    UI.drawDialogue(ctx);
+
+    // Ampliamos el pixel art x2 a la imagen final de 1280x720
+    this.ctx.imageSmoothingEnabled = false;
+    this.ctx.drawImage(this.buffer, 0, 0, CONFIG.OUTPUT_WIDTH, CONFIG.OUTPUT_HEIGHT);
+  },
+
+  /** Logotipo del menú dibujado con la fuente de píxeles. */
+  drawTitleLogo(ctx) {
+    const bob = Math.round(Math.sin(this.time * 2) * 2);
+    PixelFont.draw(ctx, "The Cat's Journey", 322, 26 + bob + 3, { color: '#7a3410', scale: 5, align: 'center' });
+    PixelFont.draw(ctx, "The Cat's Journey", 320, 26 + bob, { color: '#fff3d6', outline: '#7a3410', scale: 5, align: 'center' });
+    PixelFont.draw(ctx, 'La gran aventura de Milo para rescatar a Luna', 320, 84, { color: '#ffffff', outline: '#2a1d3d', align: 'center' });
   },
 
   renderWorld(ctx) {
@@ -815,8 +879,8 @@ const Game = {
     ctx.save();
     camera.applyTransform(ctx);
     level.drawDecorations(ctx, camera, this.time);
-    level.drawTerrain(ctx, camera, this.time);
     level.drawObjects(ctx, camera, this.time);
+    level.drawTerrain(ctx, camera, this.time);
 
     for (const item of this.collectibles) {
       if (camera.isVisible(item.x, item.y, item.w, item.h)) item.draw(ctx);
@@ -833,7 +897,7 @@ const Game = {
     // Bocadillo del cartel más cercano
     if (this.state === 'playing') {
       for (const sign of level.signs) {
-        if (Math.abs(sign.x + 20 - this.player.centerX) < 70 && Math.abs(sign.y - this.player.y) < 80) {
+        if (Math.abs(sign.x + 12 - this.player.centerX) < 42 && Math.abs(sign.y - this.player.y) < 48) {
           sign.drawBubble(ctx, camera.x);
           break;
         }
@@ -841,14 +905,8 @@ const Game = {
     }
     ctx.restore();
 
-    // Viñeta oscura en el castillo para dar ambiente
-    if (level.themeName === 'castle') {
-      const vignette = ctx.createRadialGradient(480, 280, 200, 480, 280, 600);
-      vignette.addColorStop(0, 'rgba(0,0,0,0)');
-      vignette.addColorStop(1, 'rgba(0,0,0,0.5)');
-      ctx.fillStyle = vignette;
-      ctx.fillRect(0, 0, CONFIG.VIEW_WIDTH, CONFIG.VIEW_HEIGHT);
-    }
+    // Viñeta oscura tramada en el castillo para dar ambiente
+    if (level.themeName === 'castle') ctx.drawImage(this.vignette, 0, 0);
   },
 
   /* ------------------------------ Bucle principal ------------------------------ */

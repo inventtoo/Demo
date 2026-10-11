@@ -258,6 +258,9 @@ const AudioManager = {
       case 'victory':
         [523, 659, 784, 1047, 988, 1047, 1319, 1568].forEach((freq, i) => this.playTone(freq, 0.3, { type: 'triangle', volume: 0.3, delay: i * 0.15 }));
         break;
+      case 'textBlip':
+        this.playTone(880 + Math.random() * 120, 0.03, { type: 'square', volume: 0.05 });
+        break;
       case 'select':
         this.playTone(660, 0.07, { type: 'square', volume: 0.12 });
         break;

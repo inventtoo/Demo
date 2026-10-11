@@ -1,8 +1,8 @@
 # assets/images
 
-Carpeta reservada para imágenes opcionales (sprites, fondos...).
+Carpeta reservada para imágenes opcionales.
 
-El juego **no necesita ninguna imagen**: todos los personajes, enemigos y
-escenarios se dibujan con la Canvas API desde JavaScript (`drawCat()` en
-`js/player.js`, `drawRatKing()` en `js/enemies.js`, fondos en `js/levels.js`).
-Si en el futuro quieres usar sprites propios, guárdalos aquí.
+El juego **no necesita ninguna imagen**: todo el pixel art se genera al
+arrancar a partir de código. Los personajes, enemigos y objetos están
+dibujados como rejillas de texto en `js/sprites.js`, y los escenarios se
+generan píxel a píxel en `js/scenery.js`.

@@ -10,75 +10,24 @@
 <body>
   <!--
     Contenedor principal del juego.
-    El canvas dibuja el mundo; los elementos HTML superpuestos forman
-    la interfaz (HUD, menús, diálogos y controles táctiles).
+    El canvas dibuja el mundo, el HUD y los diálogos en pixel art; los
+    elementos HTML superpuestos son los menús y los controles táctiles.
   -->
   <div id="game-container">
-    <canvas id="game-canvas" width="960" height="560">
+    <!-- Imagen final de 1280x720 (720p): el pixel art de 640x360 ampliado x2 -->
+    <canvas id="game-canvas" width="1280" height="720">
       Tu navegador no soporta el elemento Canvas.
     </canvas>
 
-    <!-- ===================== HUD (interfaz durante la partida) ===================== -->
-    <div id="hud" class="hidden">
-      <div class="hud-group hud-left">
-        <div id="hud-hearts" class="hud-hearts" aria-label="Salud"></div>
-        <div class="hud-item" title="Vidas">
-          <span class="icon icon-cat"></span>
-          <span>×&nbsp;<span id="hud-lives">3</span></span>
-        </div>
-      </div>
-
-      <div class="hud-group hud-center">
-        <span id="hud-level">Nivel 1</span>
-        <span id="hud-paused" class="hidden">❚❚ PAUSA</span>
-      </div>
-
-      <div class="hud-group hud-right">
-        <div class="hud-item" title="Monedas">
-          <span class="icon icon-coin"></span><span id="hud-coins">0</span>
-        </div>
-        <div class="hud-item" title="Estrellas">
-          <span class="icon icon-star">★</span><span id="hud-stars">0</span>
-        </div>
-        <div class="hud-item hud-key-slot" id="hud-key" title="Llave">
-          <span class="icon icon-key"></span>
-        </div>
-        <div class="hud-energy" title="Energía (tecla X)">
-          <div id="hud-energy-fill"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Barra de vida del jefe final -->
-    <div id="boss-bar" class="hidden">
-      <div class="boss-name">Rey Rata</div>
-      <div class="boss-bar-track"><div id="boss-bar-fill"></div></div>
-    </div>
-
-    <!-- Mensajes cortos y título de nivel -->
-    <div id="toast" class="hidden"></div>
-    <div id="level-title" class="hidden"></div>
-
-    <!-- ===================== Caja de diálogo para la historia ===================== -->
-    <div id="dialogue" class="hidden">
-      <div id="dialogue-name"></div>
-      <div id="dialogue-text"></div>
-      <div id="dialogue-next">▼ Espacio / Enter / clic</div>
-      <button id="dialogue-skip" class="btn btn-small" type="button">Saltar ⏭</button>
-    </div>
-
     <!-- ===================== Pantalla de inicio ===================== -->
+    <!-- El logotipo y los gatos del menú se dibujan en el canvas (pixel art) -->
     <div id="screen-menu" class="screen">
-      <div class="title-block">
-        <h1 class="game-title">The Cat's Journey</h1>
-        <p class="subtitle">La gran aventura de Milo para rescatar a Luna</p>
-      </div>
       <div class="menu-buttons">
         <button class="btn btn-primary" type="button" data-action="start">▶ Comenzar partida</button>
         <button class="btn" type="button" data-action="instructions">Instrucciones</button>
         <button class="btn" type="button" data-action="settings">Configuración</button>
       </div>
-      <p class="menu-footer">Pulsa <kbd>Enter</kbd> para empezar</p>
+      <p class="menu-footer">Pulsa Enter para empezar</p>
     </div>
 
     <!-- ===================== Instrucciones ===================== -->
@@ -97,7 +46,7 @@
           </table>
           <ul class="tips">
             <li><b>Salta sobre los enemigos</b> para derrotarlos. Si los tocas de lado, perderás un corazón.</li>
-            <li>Recoge <span class="txt-coin">monedas</span> (50 = vida extra), <span class="txt-heart">corazones</span> para curarte y las <span class="txt-star">3 estrellas</span> escondidas en cada nivel.</li>
+            <li>Recoge <span class="txt-coin">monedas</span> (50 = vida extra), <span class="txt-heart">corazones</span> para curarte y las <span class="txt-star">3 estrellas</span> de cada nivel.</li>
             <li>Las <b>llaves</b> abren puertas cerradas.</li>
             <li>Las banderas de control guardan tu posición.</li>
             <li>El jefe final solo es vulnerable cuando está <b>agotado</b>.</li>
@@ -205,6 +154,9 @@
   -->
   <script src="js/audio.js"></script>
   <script src="js/physics.js"></script>
+  <script src="js/pixelart.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/scenery.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/collectibles.js"></script>
   <script src="js/enemies.js"></script>

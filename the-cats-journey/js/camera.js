@@ -46,7 +46,7 @@ class Camera {
    */
   follow(target, dt, instant = false) {
     // Miramos un poco hacia donde mira el jugador para ver lo que viene
-    const lookAhead = (target.facing || 1) * 70;
+    const lookAhead = (target.facing || 1) * 42;
     let targetX = target.x + target.w / 2 - this.width / 2 + lookAhead;
     let targetY = target.y + target.h / 2 - this.height * 0.55;
 

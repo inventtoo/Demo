@@ -1,24 +1,35 @@
 /* =====================================================================
-   The Cat's Journey - Estilos
+   The Cat's Journey - Estilos (pixel art)
    ---------------------------------------------------------------------
-   El canvas tiene una resolución interna fija (960x560). El contenedor
-   se escala con JavaScript para ocupar la ventana sin deformarse y su
-   tamaño de letra (font-size) se ajusta a esa escala. Por eso toda la
-   interfaz usa unidades "em": así crece y encoge junto con el juego.
+   El juego se dibuja en el canvas a 1280x720 (pixel art de 640x360
+   ampliado x2). El contenedor se escala con JavaScript y su tamaño de
+   letra también: así toda la interfaz HTML usa unidades "em" y crece
+   junto con el juego. 0.1em equivale a un píxel de arte.
+
+   La fuente "CatPixel" se genera a partir de la misma tabla de letras
+   que usa el canvas (FONT_GLYPHS en js/pixelart.js) y va incrustada
+   aquí en base64 para que funcione abriendo index.html sin servidor.
    ===================================================================== */
 
+@font-face {
+  font-family: "CatPixel";
+  src: url(data:font/ttf;base64,AAEAAAAKAIAAAwAgT1MvMqXqaf8AAAEoAAAAYGNtYXB+BX9BAAADKAAAAVJnbHlmxL66jgAABVAAACvWaGVhZC7tpswAAACsAAAANmhoZWEFegH4AAAA5AAAACRobXR4zEwAAAAAAYgAAAGgbG9jYV9PagwAAAR8AAAA1G1heHAAegBCAAABCAAAACBuYW1lg6mP6gAAMSgAAABjcG9zdJd+3WkAADGMAAACjgABAAAAAQAA3O+8bl8PPPUAAwPoAAAAAObxMcoAAAAA5vExygAA/zgB9AMgAAAAAwACAAAAAAAAAAEAAAOE/tQAAAJYAAAAZAH0AAEAAAAAAAAAAAAAAAAAAABnAAEAAABpAEAAEAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAwH+AZAABQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAABgIAAAAAAAAAAAPz8/PwAAACAmZQOE/tQAAAOEASwAAAAAAAAAAAAAAAAAAAAgAAAB9AAAAlgAAAJYAAACWAAAAlgAAAJYAAACWAAAAlgAAAJYAAABkAAAAlgAAAJYAAACWAAAAlgAAAJYAAACWAAAAlgAAAJYAAACWAAAAlgAAAJYAAACWAAAAlgAAAJYAAACWAAAAlgAAAJYAAAB9AAAAfQAAAH0AAAB9AAAAfQAAAH0AAAB9AAAAfQAAADIAAABkAAAAfQAAAEsAAACWAAAAfQAAAH0AAAB9AAAAfQAAAGQAAAB9AAAAZAAAAH0AAACWAAAAlgAAAH0AAAB9AAAAfQAAAJYAAABkAAAAlgAAAJYAAACWAAAAlgAAAJYAAACWAAAAlgAAAJYAAABLAAAAMgAAADIAAAAyAAAAMgAAAJYAAACWAAAAMgAAADIAAABkAAAAlgAAAH0AAABLAAAASwAAAJYAAAAyAAAAZAAAAJYAAACWAAAAlgAAAJYAAACWAAAAlgAAAJYAAACWAAAAfQAAAJYAAAAyAAAAlgAAAH0AAAB9AAAAMgAAAH0AAAB9AAAAfQAAAH0AAACWAAAAlgAAAGQAAACWAAAAAAAAAAAAAIAAAADAAAAFAADAAEAAAAUAAQBPgAAAEQAQAAFAAQAIgAlACkALwA5ADsAPQA/AFoAXwB6AKEAtwC/AMEAyQDNANEA0wDXANoA4QDpAO0A8QDzAPoA/CGTJbYlvCYFJmX//wAAACAAJQAnACsAMAA6AD0APwBBAF8AYQChALcAvwDBAMkAzQDRANMA1wDaAOEA6QDtAPEA8wD6APwhkCW2JbwmBSZl//8AAAArAAAAAAAFAAwADQAF/8D//P+6/6L/o/+G/6L/m/+Y/5f/k/+A/43/e/90/3H/cf9s/2b/ZQAA2qLandpN2ewAAQBEAAAARgBKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACIAAAAAAAAAAAAAAD8AQgBPAE4ASwBMAEkAQQBIAEAATQBTAFUAVABWAAAAAAAMAFkAoADbAScBVgGFAcwCHQJLAoQC0gL/A14DuAQFBEAElQTgBQ8FPQWOBd4GPQaMBsoG+AciB2EHhAfEB+0IGwhbCJ4IxQj9CT8Jawm8CfQKJwpmCqUKzArvCxwLVAuNC9UMDQxRDHUMxQzzDScNVQ2PDcQOAA4tDnUOsQ6xDrwOzA7zDxoPSA92D4gPnw+rD88P4hAPEDsQaRB6EJYQ2BECETcRWhF9EbAR4xIbEksSYxJuEnkSrxLkEwsTShOPE9MUIhR1FKsU3xUyFYoV6wABAAAAAAGQArwAAwAAMREhEQGQArz9RAAMAAAAAAH0ArwAAwAHAAsADwATABcAGwAfACMAJwArAC8AABM1IRUFNTMVITUzFQU1MxUhNTMVBTUhFQU1MxUhNTMVBTUzFSE1MxUFNTMVITUzFWQBLP5wZAEsZP4MZAEsZP4MAfT+DGQBLGT+DGQBLGT+DGQBLGQCWGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAAACwAAAAAB9AK8AAMABwALAA8AEwAXABsAHwAjACcAKwAAETUhFQU1MxUhNTMVBTUzFSE1MxUFNSEVBTUzFSE1MxUFNTMVITUzFQU1IRUBkP5wZAEsZP4MZAEsZP4MAZD+cGQBLGT+DGQBLGT+DAGQAlhkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAkAAAAAAfQCvAADAAcACwAPABMAFwAbAB8AIwAAEzUhFQU1MxUhNTMVBTUzFQc1MxUHNTMVBzUzFSE1MxUFNSEVZAEs/nBkASxk/gxkZGRkZGRkASxk/nABLAJYZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAAMAAAAAAH0ArwAAwAHAAsADwATABcAGwAfACMAJwArAC8AABE1IRUFNTMVITUzFQU1MxUhNTMVBTUzFSE1MxUFNTMVITUzFQU1MxUhNTMVBTUhFQGQ/nBkASxk/gxkASxk/gxkASxk/gxkASxk/gxkASxk/gwBkAJYZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAcAAAAAAfQCvAADAAcACwAPABMAFwAbAAARNSEVBTUzFQc1MxUHNSEVBTUzFQc1MxUHNSEVAfT+DGRkZGQBkP5wZGRkZAH0AlhkZGRkZGRkZGRkZGRkZGRkZGRkZAAHAAAAAAH0ArwAAwAHAAsADwATABcAGwAAETUhFQU1MxUHNTMVBzUhFQU1MxUHNTMVBzUzFQH0/gxkZGRkAZD+cGRkZGRkAlhkZGRkZGRkZGRkZGRkZGRkZGRkZAAACwAAAAAB9AK8AAMABwALAA8AEwAXABsAHwAjACcAKwAAEzUhFQU1MxUhNTMVBTUzFQc1MxUzNSEVBTUzFSE1MxUFNTMVITUzFQU1IRVkASz+cGQBLGT+DGRkZGQBLP4MZAEsZP4MZAEsZP5wAZACWGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQAAA0AAAAAAfQCvAADAAcACwAPABMAFwAbAB8AIwAnACsALwAzAAARNTMVITUzFQU1MxUhNTMVBTUzFSE1MxUFNSEVBTUzFSE1MxUFNTMVITUzFQU1MxUhNTMVZAEsZP4MZAEsZP4MZAEsZP4MAfT+DGQBLGT+DGQBLGT+DGQBLGQCWGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAcAAAAAASwCvAADAAcACwAPABMAFwAbAAARNSEVBzUzFQc1MxUHNTMVBzUzFQc1MxUHNSEVASzIZGRkZGRkZGRkyAEsAlhkZGRkZGRkZGRkZGRkZGRkZGRkZAAACQAAAAAB9AK8AAMABwALAA8AEwAXABsAHwAjAAATNSEVBzUzFQc1MxUHNTMVBTUzFTM1MxUFNTMVMzUzFQU1MxXIASzIZGRkZGT+cGTIZP5wZMhk/tTIAlhkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQADQAAAAAB9AK8AAMABwALAA8AEwAXABsAHwAjACcAKwAvADMAABE1MxUhNTMVBTUzFTM1MxUFNTMVMzUzFQU1MxUHNTMVMzUzFQU1MxUzNTMVBTUzFSE1MxVkASxk/gxkyGT+cGRkZP7UyMhkZGT+1GTIZP5wZAEsZAJYZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQABwAAAAAB9AK8AAMABwALAA8AEwAXABsAABE1MxUHNTMVBzUzFQc1MxUHNTMVBzUzFQc1IRVkZGRkZGRkZGRkZGQB9AJYZGRkZGRkZGRkZGRkZGRkZGRkZGQAEAAAAAAB9AK8AAMABwALAA8AEwAXABsAHwAjACcAKwAvADMANwA7AD8AABE1MxUhNTMVBTUzFTM1MxUFNTMVMzUzFTM1MxUFNTMVMzUzFTM1MxUFNTMVITUzFQU1MxUhNTMVBTUzFSE1MxVkASxk/gzIZMj+DGRkZGRk/gxkZGRkZP4MZAEsZP4MZAEsZP4MZAEsZAJYZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQAAA8AAAAAAfQCvAADAAcACwAPABMAFwAbAB8AIwAnACsALwAzADcAOwAAETUzFSE1MxUFNTMVMzUzFQU1MxUzNTMVMzUzFQU1MxUzNTMVBTUzFSE1MxUFNTMVITUzFQU1MxUhNTMVZAEsZP4MyMhk/gxkZGRkZP4MZMjI/gxkASxk/gxkASxk/gxkASxkAlhkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQAAAwAAAAAAfQCvAADAAcACwAPABMAFwAbAB8AIwAnACsALwAAEzUhFQU1MxUhNTMVBTUzFSE1MxUFNTMVITUzFQU1MxUhNTMVBTUzFSE1MxUFNSEVZAEs/nBkASxk/gxkASxk/gxkASxk/gxkASxk/gxkASxk/nABLAJYZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAAJAAAAAAH0ArwAAwAHAAsADwATABcAGwAfACMAABE1IRUFNTMVITUzFQU1MxUhNTMVBTUhFQU1MxUHNTMVBzUzFQGQ/nBkASxk/gxkASxk/gwBkP5wZGRkZGQCWGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAAADgAAAAAB9AK8AAMABwALAA8AEwAXABsAHwAjACcAKwAvADMANwAAEzUhFQU1MxUhNTMVBTUzFSE1MxUFNTMV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AZBkZGRkZGRkZGRkZGRkZGRkAAcAAAAAAZACvAADAAcACwAPABMAFwAbAAATNTMVBTUzFQc1IRUHNTMVBzUzFQc1MxUHNTMVyMj+1GTIASzIZGRkZGRkZAJYZGRkZGRkZGRkZGRkZGRkZGRkZGQACgAA/zgBkAH0AAMABwALAA8AEwAXABsAHwAjACcAABM1IRUFNTMVMzUzFQU1MxUzNTMVBTUzFTM1MxUFNSEVBzUzFQU1MxVkASz+cGTIZP5wZMhk/nBkyGT+1AEsZGT+1MgBkGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAALAAAAAAGQArwAAwAHAAsADwATABcAGwAfACMAJwArAAARNTMVBzUzFQc1IRUFNTMVMzUzFQU1MxUzNTMVBTUzFTM1MxUFNTMVMzUzFWRkZGQBLP7UZMhk/nBkyGT+cGTIZP5wZMhkAlhkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAYAAAAAAGQCvAADAAcACwAPABMAFwAAETUzFQc1MxUHNTMVBzUzFQc1MxUHNTMVZGRkZGRkZGRkZGQCWGRkyGRkZGRkZGRkZGRkZGRkAAkAAP84ASwCvAADAAcACwAPABMAFwAbAB8AIwAAEzUzFQc1MxUHNTMVBzUzFQc1MxUHNTMVBTUzFTM1MxUHNTMVyGRkZGRkZGRkZGRk/tRkZGTIZAJYZGTIZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAALAAAAAAGQArwAAwAHAAsADwATABcAGwAfACMAJwArAAARNTMVBzUzFQc1MxUzNTMVBTUzFTM1MxUFNTMVBzUzFTM1MxUFNTMVMzUzFWRkZGRkyGT+cGRkZP7UyMhkZGT+1GTIZAJYZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAAHAAAAAADIArwAAwAHAAsADwATABcAGwAAETUzFQc1MxUHNTMVBzUzFQc1MxUHNTMVFTUzFWRkZGRkZGRkZGRkZAJYZGRkZGRkZGRkZGRkZGRkZGRkZGQADgAAAAAB9AH0AAMABwALAA8AEwAXABsAHwAjACcAKwAvADMANwAAETUzFTM1MxUFNTMVMzUzFTM1MxUFNTMVMzUzFTM1MxUFNTMVMzUzFTM1MxUFNTMVMzUzFTM1MxXIZGT+cGRkZGRk/gxkZGRkZP4MZGRkZGT+DGRkZGRkAZBkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAAACQAAAAABkAH0AAMABwALAA8AEwAXABsAHwAjAAARNSEVBTUzFTM1MxUFNTMVMzUzFQU1MxUzNTMVBTUzFTM1MxUBLP7UZMhk/nBkyGT+cGTIZP5wZMhkAZBkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAgAAAAAAZAB9AADAAcACwAPABMAFwAbAB8AABM1MxUFNTMVMzUzFQU1MxUzNTMVBTUzFTM1MxUFNTMVZMj+1GTIZP5wZMhk/nBkyGT+1MgBkGRkZGRkZGRkZGRkZGRkZGRkZGRkAAoAAP84AZAB9AADAAcACwAPABMAFwAbAB8AIwAnAAARNSEVBTUzFTM1MxUFNTMVMzUzFQU1MxUzNTMVBTUhFQU1MxUHNTMVASz+1GTIZP5wZMhk/nBkyGT+cAEs/tRkZGQBkGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAoAAP84AZAB9AADAAcACwAPABMAFwAbAB8AIwAnAAATNSEVBTUzFTM1MxUFNTMVMzUzFQU1MxUzNTMVBTUhFQc1MxUHNTMVZAEs/nBkyGT+cGTIZP5wZMhk/tQBLGRkZGQBkGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAYAAAAAASwB9AADAAcACwAPABMAFwAAETUzFTM1MxUFNTMVBzUzFQc1MxUHNTMVZGRk/tTIyGRkZGRkAZBkZGRkZGRkZGRkZGRkZGRkAAUAAAAAAZAB9AADAAcACwAPABMAABM1IRUFNTMVFTUzFRU1MxUFNSEVZAEs/nBkyGT+cAEsAZBkZGRkZGRkZGRkZGRkZAAHAAAAAAEsArwAAwAHAAsADwATABcAGwAAEzUzFQc1MxUHNSEVBzUzFQc1MxUHNTMVFTUzFWRkZGTIASzIZGRkZGRkAlhkZGRkZGRkZGRkZGRkZGRkZGRkZAAJAAAAAAGQAfQAAwAHAAsADwATABcAGwAfACMAABE1MxUzNTMVBTUzFTM1MxUFNTMVMzUzFQU1MxUzNTMVBTUhFWTIZP5wZMhk/nBkyGT+cGTIZP7UASwBkGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQACQAAAAAB9AH0AAMABwALAA8AEwAXABsAHwAjAAARNTMVITUzFQU1MxUhNTMVBTUzFSE1MxUFNTMVMzUzFQc1MxVkASxk/gxkASxk/gxkASxk/nBkZGTIZAGQZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAAADAAAAAAB9AH0AAMABwALAA8AEwAXABsAHwAjACcAKwAvAAARNTMVITUzFQU1MxUhNTMVBTUzFTM1MxUzNTMVBTUzFTM1MxUzNTMVBTUzFTM1MxVkASxk/gxkASxk/gxkZGRkZP4MZGRkZGT+cGRkZAGQZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAAACQAAAAABkAH0AAMABwALAA8AEwAXABsAHwAjAAARNTMVMzUzFQU1MxUzNTMVBTUzFQU1MxUzNTMVBTUzFTM1MxVkyGT+cGTIZP7UyP7UZMhk/nBkyGQBkGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQAAAsAAP84AZAB9AADAAcACwAPABMAFwAbAB8AIwAnACsAABE1MxUzNTMVBTUzFTM1MxUFNTMVMzUzFQU1MxUzNTMVBTUhFQc1MxUFNTMVZMhk/nBkyGT+cGTIZP5wZMhk/tQBLGRk/tTIAZBkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAAFAAAAAAGQAfQAAwAHAAsADwATAAARNSEVBzUzFQU1MxUFNTMVBzUhFQGQZGT+1Mj+1GRkAZABkGRkZGRkZGRkZGRkZGRkAAANAAAAAAH0ArwAAwAHAAsADwATABcAGwAfACMAJwArAC8AMwAAEzUhFQU1MxUhNTMVBTUzFTM1MxUFNTMVMzUzFTM1MxUFNTMVMzUzFQU1MxUhNTMVBTUhFWQBLP5wZAEsZP4MZMjI/gxkZGRkZP4MyMhk/gxkASxk/nABLAJYZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQABwAAAAABLAK8AAMABwALAA8AEwAXABsAABM1MxUHNTMVBzUzFQc1MxUHNTMVBzUzFQc1IRVkZMjIZGRkZGRkZGTIASwCWGRkZGRkZGRkZGRkZGRkZGRkZGRkAAAIAAAAAAH0ArwAAwAHAAsADwATABcAGwAfAAATNSEVBTUzFSE1MxUHNTMVBzUzFQc1MxUHNTMVBzUhFWQBLP5wZAEsZGRkyGTIZMhkyAH0AlhkZGRkZGRkZGRkZGRkZGRkZGRkZGRkAAcAAAAA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) format("truetype");
+  font-display: block;
+}
+
 :root {
-  --color-bg: #1b1530;
-  --color-panel: rgba(255, 248, 235, 0.96);
-  --color-panel-border: #6b3f1d;
+  --color-bg: #120b1e;
+  --color-panel: #f6e7c8;
+  --color-panel-light: #fff8e8;
+  --color-panel-shade: #d9bf94;
+  --color-border: #3b2214;
   --color-text: #3a2618;
-  --color-primary: #ff8c42;
-  --color-primary-dark: #d4621b;
-  --color-accent: #7ec8e3;
-  --color-coin: #ffc93c;
-  --color-heart: #ff4f6d;
-  --color-star: #ffe066;
-  --font-main: "Trebuchet MS", "Segoe UI", "Verdana", sans-serif;
+  --color-primary: #f28c3a;
+  --color-primary-light: #ffb562;
+  --color-primary-dark: #c4621f;
+  --color-dark-panel: #2a1d3d;
+  --px: 0.1em;            /* 1 píxel de la fuente = 1 píxel de arte */
+  --font-main: "CatPixel", "Courier New", monospace;
 }
 
 * {
@@ -32,7 +43,7 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 30%, #2d2350 0%, var(--color-bg) 70%);
+  background: var(--color-bg);
   font-family: var(--font-main);
   color: var(--color-text);
   /* Evita selecciones y menús accidentales al jugar en móviles */
@@ -40,6 +51,8 @@ body {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   touch-action: none;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
 }
 
 body {
@@ -50,15 +63,15 @@ body {
 
 /* ---------------------------------------------------------------------
    Contenedor y canvas
+   El canvas mide 1280x720 por dentro; el navegador lo escala con
+   "pixelated" para que los píxeles sigan siendo cuadrados y nítidos.
    --------------------------------------------------------------------- */
 #game-container {
   position: relative;
-  width: 960px;   /* JavaScript ajusta estos valores al redimensionar */
-  height: 560px;
-  font-size: 16px;
+  width: 1280px;   /* JavaScript ajusta estos valores al redimensionar */
+  height: 720px;
+  font-size: 20px; /* 1 píxel de la fuente (0.1em) = 2 píxeles reales a 720p */
   overflow: hidden;
-  border-radius: 0.6em;
-  box-shadow: 0 0 2.5em rgba(0, 0, 0, 0.6);
   background: #000;
 }
 
@@ -66,6 +79,8 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .hidden {
@@ -73,278 +88,8 @@ body {
 }
 
 /* ---------------------------------------------------------------------
-   HUD
-   --------------------------------------------------------------------- */
-#hud {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 0.6em 0.9em;
-  pointer-events: none;
-  font-weight: bold;
-  color: #fff;
-  text-shadow: 0 0.12em 0 rgba(0, 0, 0, 0.55);
-}
-
-.hud-group {
-  display: flex;
-  align-items: center;
-  gap: 0.7em;
-  background: rgba(20, 12, 35, 0.45);
-  border-radius: 1.2em;
-  padding: 0.3em 0.8em;
-}
-
-.hud-center {
-  flex-direction: column;
-  gap: 0.1em;
-  font-size: 1.05em;
-}
-
-#hud-paused {
-  color: var(--color-star);
-  animation: blink 1s infinite;
-}
-
-.hud-item {
-  display: flex;
-  align-items: center;
-  gap: 0.3em;
-  font-size: 1.1em;
-}
-
-.hud-hearts {
-  display: flex;
-  gap: 0.15em;
-}
-
-.hud-heart {
-  width: 1.5em;
-  height: 1.5em;
-  transition: transform 0.2s;
-}
-
-.hud-heart.empty {
-  opacity: 0.35;
-  filter: grayscale(1);
-}
-
-.hud-heart.pop {
-  animation: pop 0.35s ease-out;
-}
-
-.icon {
-  display: inline-block;
-  width: 1.2em;
-  height: 1.2em;
-}
-
-.icon-coin {
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #fff6c2 0 15%, var(--color-coin) 35%, #d99a00 100%);
-  border: 0.12em solid #a87400;
-}
-
-.icon-star {
-  color: var(--color-star);
-  font-size: 1.35em;
-  line-height: 0.9;
-  width: auto;
-  height: auto;
-}
-
-.icon-cat {
-  /* Cabeza de gato hecha solo con CSS */
-  position: relative;
-  border-radius: 50%;
-  background: #ff9a3c;
-  border: 0.1em solid #8a4a12;
-  margin-top: 0.2em;
-}
-
-.icon-cat::before,
-.icon-cat::after {
-  content: "";
-  position: absolute;
-  top: -0.35em;
-  width: 0;
-  height: 0;
-  border-left: 0.25em solid transparent;
-  border-right: 0.25em solid transparent;
-  border-bottom: 0.45em solid #ff9a3c;
-}
-
-.icon-cat::before { left: 0; }
-.icon-cat::after { right: 0; }
-
-.icon-key {
-  width: 1.5em;
-  background:
-    radial-gradient(circle at 25% 50%, transparent 0 0.17em, #ffd23f 0.18em 0.33em, transparent 0.34em),
-    linear-gradient(#ffd23f, #ffd23f) 0.55em 0.5em / 0.85em 0.22em no-repeat,
-    linear-gradient(#ffd23f, #ffd23f) 1.1em 0.62em / 0.16em 0.35em no-repeat,
-    linear-gradient(#ffd23f, #ffd23f) 1.3em 0.62em / 0.16em 0.28em no-repeat;
-}
-
-.hud-key-slot {
-  opacity: 0.25;
-  filter: grayscale(1);
-  transition: opacity 0.3s;
-}
-
-.hud-key-slot.has-key {
-  opacity: 1;
-  filter: none;
-  animation: pop 0.4s ease-out;
-}
-
-.hud-energy {
-  width: 3.2em;
-  height: 0.6em;
-  border-radius: 0.3em;
-  background: rgba(255, 255, 255, 0.2);
-  overflow: hidden;
-  border: 0.08em solid rgba(255, 255, 255, 0.5);
-}
-
-#hud-energy-fill {
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(90deg, #7ef9ff, #c77dff);
-}
-
-/* Barra del jefe */
-#boss-bar {
-  position: absolute;
-  bottom: 0.9em;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 55%;
-  text-align: center;
-  pointer-events: none;
-  color: #fff;
-  font-weight: bold;
-  text-shadow: 0 0.1em 0 #000;
-}
-
-.boss-name {
-  font-size: 1.1em;
-  letter-spacing: 0.1em;
-  margin-bottom: 0.2em;
-}
-
-.boss-bar-track {
-  height: 1em;
-  border-radius: 0.5em;
-  border: 0.15em solid #fff;
-  background: rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-}
-
-#boss-bar-fill {
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(90deg, #ff3b3b, #ff9f1c);
-  transition: width 0.3s;
-}
-
-/* Mensajes */
-#toast {
-  position: absolute;
-  top: 4.2em;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(20, 12, 35, 0.8);
-  color: #fff;
-  padding: 0.5em 1.2em;
-  border-radius: 1em;
-  font-weight: bold;
-  pointer-events: none;
-  animation: slide-down 0.3s ease-out;
-  white-space: nowrap;
-}
-
-#level-title {
-  position: absolute;
-  top: 35%;
-  left: 0;
-  right: 0;
-  text-align: center;
-  color: #fff;
-  font-size: 2.4em;
-  font-weight: bold;
-  text-shadow: 0 0.08em 0 #000, 0 0 0.6em rgba(0, 0, 0, 0.6);
-  pointer-events: none;
-  animation: title-card 2.8s ease-in-out forwards;
-}
-
-#level-title small {
-  display: block;
-  font-size: 0.45em;
-  letter-spacing: 0.25em;
-  color: var(--color-star);
-}
-
-/* ---------------------------------------------------------------------
-   Diálogos
-   --------------------------------------------------------------------- */
-#dialogue {
-  position: absolute;
-  left: 5%;
-  right: 5%;
-  bottom: 1em;
-  min-height: 7em;
-  background: var(--color-panel);
-  border: 0.25em solid var(--color-panel-border);
-  border-radius: 1em;
-  padding: 1.4em 1.4em 1.8em;
-  box-shadow: 0 0.4em 0 rgba(0, 0, 0, 0.35);
-  cursor: pointer;
-  animation: slide-up 0.3s ease-out;
-}
-
-#dialogue-name {
-  position: absolute;
-  top: -1.1em;
-  left: 1em;
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: bold;
-  padding: 0.25em 0.9em;
-  border-radius: 0.7em;
-  border: 0.18em solid var(--color-panel-border);
-}
-
-#dialogue-name.narrator { background: #7d6bb0; }
-#dialogue-name.luna { background: #e778a8; }
-#dialogue-name.villain { background: #6b2e8a; }
-
-#dialogue-text {
-  font-size: 1.2em;
-  line-height: 1.45;
-}
-
-#dialogue-next {
-  position: absolute;
-  right: 1em;
-  bottom: 0.4em;
-  font-size: 0.8em;
-  opacity: 0.6;
-  animation: blink 1.2s infinite;
-}
-
-#dialogue-skip {
-  position: absolute;
-  top: -1.1em;
-  right: 1em;
-}
-
-/* ---------------------------------------------------------------------
-   Pantallas y paneles
+   Pantallas y paneles con estilo pixel art
+   (esquinas recortadas con clip-path y bordes de 2 "píxeles")
    --------------------------------------------------------------------- */
 .screen {
   position: absolute;
@@ -353,177 +98,138 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 8, 30, 0.55);
-  animation: fade-in 0.35s ease-out;
+  background: rgba(18, 11, 30, 0.6);
+  animation: fade-in 0.25s steps(4);
 }
 
 #screen-menu {
   background: transparent;
   justify-content: flex-start;
-  padding-top: 2.2em;
-}
-
-.title-block {
-  text-align: center;
-}
-
-.game-title {
-  margin: 0;
-  font-size: 3.6em;
-  color: #fff3d6;
-  letter-spacing: 0.03em;
-  text-shadow:
-    0 0.06em 0 #c4571a,
-    0 0.12em 0 #7a3410,
-    0 0.2em 0.4em rgba(0, 0, 0, 0.5);
-  animation: float 3s ease-in-out infinite;
-}
-
-.subtitle {
-  margin: 0.4em 0 0;
-  color: #fff;
-  font-size: 1.15em;
-  text-shadow: 0 0.1em 0 rgba(0, 0, 0, 0.6);
-}
-
-.menu-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6em;
-  margin-top: 1.6em;
-  width: 15em;
-}
-
-.menu-footer {
-  position: absolute;
-  bottom: 0.4em;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.85em;
-  text-shadow: 0 0.1em 0 #000;
+  padding-top: 10em;
 }
 
 .panel {
+  position: relative;
   background: var(--color-panel);
-  border: 0.25em solid var(--color-panel-border);
-  border-radius: 1.1em;
-  padding: 1.2em 2em 1.5em;
-  min-width: 20em;
-  max-width: 90%;
+  padding: 1.2em 2.4em 1.6em;
+  min-width: 22em;
+  max-width: 92%;
   max-height: 92%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6em;
-  box-shadow: 0 0.5em 0 rgba(0, 0, 0, 0.35);
+  gap: 0.7em;
   text-align: center;
-  animation: pop-in 0.3s ease-out;
+  border: calc(var(--px) * 2) solid var(--color-border);
+  box-shadow:
+    inset calc(var(--px) * 2) calc(var(--px) * 2) 0 var(--color-panel-light),
+    inset calc(var(--px) * -2) calc(var(--px) * -2) 0 var(--color-panel-shade);
+  clip-path: polygon(
+    var(--px) 0, calc(100% - var(--px)) 0, 100% var(--px), 100% calc(100% - var(--px)),
+    calc(100% - var(--px)) 100%, var(--px) 100%, 0 calc(100% - var(--px)), 0 var(--px));
+  animation: pop-in 0.25s steps(5);
 }
 
 .panel-wide {
-  width: 46em;
+  width: 52em;
 }
 
 .panel h2 {
   margin: 0 0 0.2em;
   font-size: 2em;
+  font-weight: normal;
   color: var(--color-primary-dark);
+  text-shadow: 0 calc(var(--px) * 1) 0 #fff8e8;
 }
 
 .panel p {
   margin: 0.2em 0 0.4em;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .title-sad { color: #6b5fa8 !important; }
-.title-victory { color: #e05b8b !important; font-size: 2.3em !important; }
+.title-victory { color: #d94f86 !important; font-size: 3em !important; }
 
 .two-columns {
   display: flex;
-  gap: 1.5em;
+  gap: 1.6em;
   text-align: left;
   align-items: flex-start;
 }
 
 .controls-table {
   border-collapse: collapse;
-  font-size: 0.95em;
   flex-shrink: 0;
 }
 
 .controls-table td {
-  padding: 0.25em 0.5em;
-  border-bottom: 0.06em dashed rgba(107, 63, 29, 0.3);
+  padding: 0.3em 0.5em;
+  border-bottom: calc(var(--px) * 1) dashed rgba(59, 34, 20, 0.35);
 }
 
 .tips {
   margin: 0;
   padding-left: 1.2em;
-  font-size: 0.92em;
-  line-height: 1.45;
+  line-height: 1.55;
 }
 
-.tips li { margin-bottom: 0.3em; }
+.tips li { margin-bottom: 0.4em; }
 
-.txt-coin { color: #c48a00; font-weight: bold; }
-.txt-heart { color: var(--color-heart); font-weight: bold; }
-.txt-star { color: #d4a000; font-weight: bold; }
+.txt-coin { color: #b07a00; }
+.txt-heart { color: #d62839; }
+.txt-star { color: #c48a00; }
 
 kbd {
   display: inline-block;
-  min-width: 1.6em;
-  padding: 0.05em 0.4em;
-  border-radius: 0.3em;
-  background: #fff;
-  border: 0.08em solid #b9a48f;
-  border-bottom-width: 0.2em;
+  min-width: 1.7em;
+  padding: 0.1em 0.4em;
+  background: #fff8e8;
+  color: var(--color-text);
   font-family: inherit;
-  font-size: 0.85em;
-  font-weight: bold;
   text-align: center;
-  color: #3a2618;
+  border: calc(var(--px) * 1) solid var(--color-border);
+  box-shadow: inset 0 calc(var(--px) * -2) 0 var(--color-panel-shade);
 }
 
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1.5em;
+  gap: 2em;
   width: 100%;
-  font-size: 1.05em;
   cursor: pointer;
 }
 
 .setting-row input[type="checkbox"] {
-  width: 1.3em;
-  height: 1.3em;
+  width: 1.4em;
+  height: 1.4em;
   accent-color: var(--color-primary);
   cursor: pointer;
 }
 
 .setting-row input[type="range"] {
-  width: 9em;
+  width: 10em;
   accent-color: var(--color-primary);
 }
 
 .setting-row select {
   font: inherit;
-  font-size: 0.9em;
-  padding: 0.15em 0.3em;
-  border-radius: 0.4em;
+  padding: 0.2em 0.4em;
+  background: #fff8e8;
+  color: var(--color-text);
+  border: calc(var(--px) * 1) solid var(--color-border);
 }
 
 .stats {
   display: grid;
   grid-template-columns: auto auto;
-  gap: 0.3em 1.5em;
+  gap: 0.35em 2em;
   margin: 0.4em 0 0.6em;
-  font-size: 1.1em;
   text-align: left;
 }
 
 .stats .stat-value {
-  font-weight: bold;
   text-align: right;
   color: var(--color-primary-dark);
 }
@@ -531,72 +237,90 @@ kbd {
 /* La pantalla de victoria deja ver abajo a Milo y Luna juntos */
 #screen-victory {
   justify-content: flex-start;
-  padding-top: 0.8em;
+  padding-top: 1em;
   background: transparent;
 }
 
 .victory-panel {
-  background: linear-gradient(180deg, rgba(255, 248, 235, 0.95) 0%, rgba(255, 232, 240, 0.95) 100%);
-  padding: 0.8em 2em 1em;
-  gap: 0.3em;
+  background: #fdeee6;
+  padding: 1em 2.4em 1.2em;
+  gap: 0.4em;
 }
 
 .victory-panel .stats {
   grid-template-columns: auto auto auto auto;
-  font-size: 1em;
-  margin: 0.2em 0 0.4em;
 }
 
 .button-row {
   display: flex;
-  gap: 1em;
+  gap: 1.2em;
 }
 
 /* ---------------------------------------------------------------------
-   Botones
+   Botones de pixel art
    --------------------------------------------------------------------- */
 .btn {
   font-family: inherit;
-  font-size: 1.1em;
-  font-weight: bold;
+  font-size: 1.2em;
   color: var(--color-text);
-  background: #fff;
-  border: 0.15em solid var(--color-panel-border);
-  border-bottom-width: 0.3em;
-  border-radius: 0.8em;
-  padding: 0.5em 1.4em;
+  background: #fff8e8;
+  border: calc(var(--px) * 2) solid var(--color-border);
+  padding: 0.55em 1.4em 0.65em;
   min-width: 12em;
   cursor: pointer;
-  transition: transform 0.1s, background 0.2s;
+  box-shadow:
+    inset 0 calc(var(--px) * 2) 0 #ffffff,
+    inset 0 calc(var(--px) * -3) 0 var(--color-panel-shade);
+  clip-path: polygon(
+    var(--px) 0, calc(100% - var(--px)) 0, 100% var(--px), 100% calc(100% - var(--px)),
+    calc(100% - var(--px)) 100%, var(--px) 100%, 0 calc(100% - var(--px)), 0 var(--px));
 }
 
 .btn:hover,
 .btn:focus-visible {
-  background: #ffeedd;
-  transform: translateY(-0.1em);
+  background: #ffe9c9;
   outline: none;
+  transform: translateY(calc(var(--px) * -1));
 }
 
 .btn:active {
-  transform: translateY(0.1em);
-  border-bottom-width: 0.15em;
+  transform: translateY(var(--px));
+  box-shadow: inset 0 calc(var(--px) * 2) 0 var(--color-panel-shade);
 }
 
 .btn-primary {
   background: var(--color-primary);
-  color: #fff;
-  text-shadow: 0 0.08em 0 rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  text-shadow: 0 calc(var(--px) * 1) 0 var(--color-primary-dark);
+  box-shadow:
+    inset 0 calc(var(--px) * 2) 0 var(--color-primary-light),
+    inset 0 calc(var(--px) * -3) 0 var(--color-primary-dark);
 }
 
 .btn-primary:hover,
 .btn-primary:focus-visible {
-  background: #ff9f5f;
+  background: #ff9f55;
 }
 
-.btn-small {
-  font-size: 0.8em;
-  min-width: 0;
-  padding: 0.25em 0.8em;
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  width: 16em;
+}
+
+.menu-buttons .btn {
+  width: 100%;
+}
+
+.menu-footer {
+  position: absolute;
+  bottom: 0.3em;
+  color: #ffffff;
+  text-shadow:
+    var(--px) 0 0 #2a1d3d, calc(var(--px) * -1) 0 0 #2a1d3d,
+    0 var(--px) 0 #2a1d3d, 0 calc(var(--px) * -1) 0 #2a1d3d;
+  animation: blink 1.2s steps(2) infinite;
 }
 
 /* ---------------------------------------------------------------------
@@ -612,7 +336,7 @@ kbd {
   position: absolute;
   bottom: 1em;
   display: flex;
-  gap: 0.8em;
+  gap: 0.9em;
 }
 
 .touch-left { left: 1em; }
@@ -622,30 +346,31 @@ kbd {
   pointer-events: auto;
   width: 4.2em;
   height: 4.2em;
-  border-radius: 50%;
-  border: 0.15em solid rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
-  font-size: 1.1em;
-  font-weight: bold;
+  font-family: inherit;
+  font-size: 1em;
+  color: #ffffff;
+  background: rgba(42, 29, 61, 0.55);
+  border: calc(var(--px) * 2) solid rgba(255, 255, 255, 0.75);
   touch-action: none;
+  clip-path: polygon(
+    calc(var(--px) * 3) 0, calc(100% - var(--px) * 3) 0, 100% calc(var(--px) * 3), 100% calc(100% - var(--px) * 3),
+    calc(100% - var(--px) * 3) 100%, calc(var(--px) * 3) 100%, 0 calc(100% - var(--px) * 3), 0 calc(var(--px) * 3));
 }
 
 #touch-controls button.active {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(242, 140, 58, 0.7);
 }
 
 #touch-pause {
   position: absolute;
-  top: 3.6em;
+  top: 3.4em;
   right: 0.8em;
-  width: 2.8em !important;
-  height: 2.8em !important;
-  font-size: 0.9em !important;
+  width: 2.6em !important;
+  height: 2.6em !important;
 }
 
 /* ---------------------------------------------------------------------
-   Fundido entre pantallas
+   Fundido entre pantallas (en pasos, como en las consolas clásicas)
    --------------------------------------------------------------------- */
 #fade {
   position: absolute;
@@ -653,7 +378,7 @@ kbd {
   background: #0b0716;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.4s steps(5);
 }
 
 #fade.visible {
@@ -661,47 +386,19 @@ kbd {
 }
 
 /* ---------------------------------------------------------------------
-   Animaciones
+   Animaciones (con steps() para que se muevan "a saltos" de píxel)
    --------------------------------------------------------------------- */
 @keyframes blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
-
-@keyframes pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.45); }
-  100% { transform: scale(1); }
+  50% { opacity: 0; }
 }
 
 @keyframes pop-in {
-  0% { transform: scale(0.85); opacity: 0; }
+  0% { transform: scale(0.9); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-0.15em); }
-}
-
-@keyframes slide-up {
-  from { transform: translateY(1.5em); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes slide-down {
-  from { transform: translate(-50%, -1em); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
-}
-
-@keyframes title-card {
-  0% { opacity: 0; transform: scale(0.8); }
-  15% { opacity: 1; transform: scale(1); }
-  80% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.05); }
 }
