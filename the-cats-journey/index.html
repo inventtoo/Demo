@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="The Cat's Journey - Un videojuego de plataformas 2D hecho con HTML5, CSS3 y JavaScript puro.">
+  <title>The Cat's Journey</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!--
+    Contenedor principal del juego.
+    El canvas dibuja el mundo; los elementos HTML superpuestos forman
+    la interfaz (HUD, menús, diálogos y controles táctiles).
+  -->
+  <div id="game-container">
+    <canvas id="game-canvas" width="960" height="560">
+      Tu navegador no soporta el elemento Canvas.
+    </canvas>
+
+    <!-- ===================== HUD (interfaz durante la partida) ===================== -->
+    <div id="hud" class="hidden">
+      <div class="hud-group hud-left">
+        <div id="hud-hearts" class="hud-hearts" aria-label="Salud"></div>
+        <div class="hud-item" title="Vidas">
+          <span class="icon icon-cat"></span>
+          <span>×&nbsp;<span id="hud-lives">3</span></span>
+        </div>
+      </div>
+
+      <div class="hud-group hud-center">
+        <span id="hud-level">Nivel 1</span>
+        <span id="hud-paused" class="hidden">❚❚ PAUSA</span>
+      </div>
+
+      <div class="hud-group hud-right">
+        <div class="hud-item" title="Monedas">
+          <span class="icon icon-coin"></span><span id="hud-coins">0</span>
+        </div>
+        <div class="hud-item" title="Estrellas">
+          <span class="icon icon-star">★</span><span id="hud-stars">0</span>
+        </div>
+        <div class="hud-item hud-key-slot" id="hud-key" title="Llave">
+          <span class="icon icon-key"></span>
+        </div>
+        <div class="hud-energy" title="Energía (tecla X)">
+          <div id="hud-energy-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de vida del jefe final -->
+    <div id="boss-bar" class="hidden">
+      <div class="boss-name">Rey Rata</div>
+      <div class="boss-bar-track"><div id="boss-bar-fill"></div></div>
+    </div>
+
+    <!-- Mensajes cortos y título de nivel -->
+    <div id="toast" class="hidden"></div>
+    <div id="level-title" class="hidden"></div>
+
+    <!-- ===================== Caja de diálogo para la historia ===================== -->
+    <div id="dialogue" class="hidden">
+      <div id="dialogue-name"></div>
+      <div id="dialogue-text"></div>
+      <div id="dialogue-next">▼ Espacio / Enter / clic</div>
+      <button id="dialogue-skip" class="btn btn-small" type="button">Saltar ⏭</button>
+    </div>
+
+    <!-- ===================== Pantalla de inicio ===================== -->
+    <div id="screen-menu" class="screen">
+      <div class="title-block">
+        <h1 class="game-title">The Cat's Journey</h1>
+        <p class="subtitle">La gran aventura de Milo para rescatar a Luna</p>
+      </div>
+      <div class="menu-buttons">
+        <button class="btn btn-primary" type="button" data-action="start">▶ Comenzar partida</button>
+        <button class="btn" type="button" data-action="instructions">Instrucciones</button>
+        <button class="btn" type="button" data-action="settings">Configuración</button>
+      </div>
+      <p class="menu-footer">Pulsa <kbd>Enter</kbd> para empezar</p>
+    </div>
+
+    <!-- ===================== Instrucciones ===================== -->
+    <div id="screen-instructions" class="screen hidden">
+      <div class="panel panel-wide">
+        <h2>Instrucciones</h2>
+        <div class="two-columns">
+          <table class="controls-table">
+            <tr><td><kbd>←</kbd> / <kbd>A</kbd></td><td>Moverse a la izquierda</td></tr>
+            <tr><td><kbd>→</kbd> / <kbd>D</kbd></td><td>Moverse a la derecha</td></tr>
+            <tr><td><kbd>Shift</kbd></td><td>Correr (mantener)</td></tr>
+            <tr><td><kbd>Espacio</kbd> / <kbd>W</kbd> / <kbd>↑</kbd></td><td>Saltar</td></tr>
+            <tr><td><kbd>X</kbd></td><td>Lanzar bola de energía</td></tr>
+            <tr><td><kbd>ESC</kbd></td><td>Pausar el juego</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Reiniciar el nivel</td></tr>
+          </table>
+          <ul class="tips">
+            <li><b>Salta sobre los enemigos</b> para derrotarlos. Si los tocas de lado, perderás un corazón.</li>
+            <li>Recoge <span class="txt-coin">monedas</span> (50 = vida extra), <span class="txt-heart">corazones</span> para curarte y las <span class="txt-star">3 estrellas</span> escondidas en cada nivel.</li>
+            <li>Las <b>llaves</b> abren puertas cerradas.</li>
+            <li>Las banderas de control guardan tu posición.</li>
+            <li>El jefe final solo es vulnerable cuando está <b>agotado</b>.</li>
+          </ul>
+        </div>
+        <button class="btn" type="button" data-action="back">Volver</button>
+      </div>
+    </div>
+
+    <!-- ===================== Configuración ===================== -->
+    <div id="screen-settings" class="screen hidden">
+      <div class="panel">
+        <h2>Configuración</h2>
+        <label class="setting-row">
+          <span>Música</span>
+          <input type="checkbox" id="setting-music" checked>
+        </label>
+        <label class="setting-row">
+          <span>Volumen de la música</span>
+          <input type="range" id="setting-music-volume" min="0" max="100" value="45">
+        </label>
+        <label class="setting-row">
+          <span>Efectos de sonido</span>
+          <input type="checkbox" id="setting-sfx" checked>
+        </label>
+        <label class="setting-row">
+          <span>Volumen de los efectos</span>
+          <input type="range" id="setting-sfx-volume" min="0" max="100" value="70">
+        </label>
+        <label class="setting-row">
+          <span>Controles táctiles</span>
+          <select id="setting-touch">
+            <option value="auto">Automático</option>
+            <option value="on">Mostrar</option>
+            <option value="off">Ocultar</option>
+          </select>
+        </label>
+        <button class="btn" type="button" data-action="back">Volver</button>
+      </div>
+    </div>
+
+    <!-- ===================== Pausa ===================== -->
+    <div id="screen-pause" class="screen hidden">
+      <div class="panel">
+        <h2>Pausa</h2>
+        <button class="btn btn-primary" type="button" data-action="resume">Continuar</button>
+        <button class="btn" type="button" data-action="restart">Reiniciar nivel</button>
+        <button class="btn" type="button" data-action="settings">Configuración</button>
+        <button class="btn" type="button" data-action="menu">Menú principal</button>
+      </div>
+    </div>
+
+    <!-- ===================== Derrota ===================== -->
+    <div id="screen-gameover" class="screen hidden">
+      <div class="panel">
+        <h2 class="title-sad">¡Oh, no!</h2>
+        <p>Milo se ha quedado sin vidas...<br>¡Pero Luna sigue esperándole!</p>
+        <button class="btn btn-primary" type="button" data-action="retry">Intentarlo de nuevo</button>
+        <button class="btn" type="button" data-action="menu">Menú principal</button>
+      </div>
+    </div>
+
+    <!-- ===================== Nivel completado ===================== -->
+    <div id="screen-level-complete" class="screen hidden">
+      <div class="panel">
+        <h2>¡Nivel completado!</h2>
+        <div id="level-complete-stats" class="stats"></div>
+        <button class="btn btn-primary" type="button" data-action="continue">Continuar ▶</button>
+      </div>
+    </div>
+
+    <!-- ===================== Victoria final ===================== -->
+    <div id="screen-victory" class="screen hidden">
+      <div class="panel panel-wide victory-panel">
+        <h2 class="title-victory">¡Felicidades!</h2>
+        <p>Milo ha derrotado al Rey Rata y ha rescatado a Luna.<br>Juntos vuelven a casa... ¡y esta vez para siempre!</p>
+        <div id="victory-stats" class="stats"></div>
+        <div class="button-row">
+          <button class="btn btn-primary" type="button" data-action="play-again">Jugar de nuevo</button>
+          <button class="btn" type="button" data-action="menu">Menú principal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== Controles táctiles ===================== -->
+    <div id="touch-controls" class="hidden">
+      <div class="touch-pad touch-left">
+        <button type="button" data-touch="left" aria-label="Izquierda">◀</button>
+        <button type="button" data-touch="right" aria-label="Derecha">▶</button>
+      </div>
+      <div class="touch-pad touch-right">
+        <button type="button" data-touch="attack" aria-label="Atacar">⚡</button>
+        <button type="button" data-touch="jump" aria-label="Saltar">▲</button>
+      </div>
+      <button type="button" id="touch-pause" data-touch="pause" aria-label="Pausa">❚❚</button>
+    </div>
+
+    <!-- Capa para las transiciones de fundido entre pantallas -->
+    <div id="fade"></div>
+  </div>
+
+  <!--
+    Scripts del juego (JavaScript puro, sin frameworks).
+    El orden importa: cada archivo usa clases o funciones de los anteriores.
+  -->
+  <script src="js/audio.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/collectibles.js"></script>
+  <script src="js/enemies.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

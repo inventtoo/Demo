@@ -1,0 +1,707 @@
+/* =====================================================================
+   The Cat's Journey - Estilos
+   ---------------------------------------------------------------------
+   El canvas tiene una resolución interna fija (960x560). El contenedor
+   se escala con JavaScript para ocupar la ventana sin deformarse y su
+   tamaño de letra (font-size) se ajusta a esa escala. Por eso toda la
+   interfaz usa unidades "em": así crece y encoge junto con el juego.
+   ===================================================================== */
+
+:root {
+  --color-bg: #1b1530;
+  --color-panel: rgba(255, 248, 235, 0.96);
+  --color-panel-border: #6b3f1d;
+  --color-text: #3a2618;
+  --color-primary: #ff8c42;
+  --color-primary-dark: #d4621b;
+  --color-accent: #7ec8e3;
+  --color-coin: #ffc93c;
+  --color-heart: #ff4f6d;
+  --color-star: #ffe066;
+  --font-main: "Trebuchet MS", "Segoe UI", "Verdana", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, #2d2350 0%, var(--color-bg) 70%);
+  font-family: var(--font-main);
+  color: var(--color-text);
+  /* Evita selecciones y menús accidentales al jugar en móviles */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------------------------------------------------------------------
+   Contenedor y canvas
+   --------------------------------------------------------------------- */
+#game-container {
+  position: relative;
+  width: 960px;   /* JavaScript ajusta estos valores al redimensionar */
+  height: 560px;
+  font-size: 16px;
+  overflow: hidden;
+  border-radius: 0.6em;
+  box-shadow: 0 0 2.5em rgba(0, 0, 0, 0.6);
+  background: #000;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------------------
+   HUD
+   --------------------------------------------------------------------- */
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.6em 0.9em;
+  pointer-events: none;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0.12em 0 rgba(0, 0, 0, 0.55);
+}
+
+.hud-group {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  background: rgba(20, 12, 35, 0.45);
+  border-radius: 1.2em;
+  padding: 0.3em 0.8em;
+}
+
+.hud-center {
+  flex-direction: column;
+  gap: 0.1em;
+  font-size: 1.05em;
+}
+
+#hud-paused {
+  color: var(--color-star);
+  animation: blink 1s infinite;
+}
+
+.hud-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 1.1em;
+}
+
+.hud-hearts {
+  display: flex;
+  gap: 0.15em;
+}
+
+.hud-heart {
+  width: 1.5em;
+  height: 1.5em;
+  transition: transform 0.2s;
+}
+
+.hud-heart.empty {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.hud-heart.pop {
+  animation: pop 0.35s ease-out;
+}
+
+.icon {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.icon-coin {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff6c2 0 15%, var(--color-coin) 35%, #d99a00 100%);
+  border: 0.12em solid #a87400;
+}
+
+.icon-star {
+  color: var(--color-star);
+  font-size: 1.35em;
+  line-height: 0.9;
+  width: auto;
+  height: auto;
+}
+
+.icon-cat {
+  /* Cabeza de gato hecha solo con CSS */
+  position: relative;
+  border-radius: 50%;
+  background: #ff9a3c;
+  border: 0.1em solid #8a4a12;
+  margin-top: 0.2em;
+}
+
+.icon-cat::before,
+.icon-cat::after {
+  content: "";
+  position: absolute;
+  top: -0.35em;
+  width: 0;
+  height: 0;
+  border-left: 0.25em solid transparent;
+  border-right: 0.25em solid transparent;
+  border-bottom: 0.45em solid #ff9a3c;
+}
+
+.icon-cat::before { left: 0; }
+.icon-cat::after { right: 0; }
+
+.icon-key {
+  width: 1.5em;
+  background:
+    radial-gradient(circle at 25% 50%, transparent 0 0.17em, #ffd23f 0.18em 0.33em, transparent 0.34em),
+    linear-gradient(#ffd23f, #ffd23f) 0.55em 0.5em / 0.85em 0.22em no-repeat,
+    linear-gradient(#ffd23f, #ffd23f) 1.1em 0.62em / 0.16em 0.35em no-repeat,
+    linear-gradient(#ffd23f, #ffd23f) 1.3em 0.62em / 0.16em 0.28em no-repeat;
+}
+
+.hud-key-slot {
+  opacity: 0.25;
+  filter: grayscale(1);
+  transition: opacity 0.3s;
+}
+
+.hud-key-slot.has-key {
+  opacity: 1;
+  filter: none;
+  animation: pop 0.4s ease-out;
+}
+
+.hud-energy {
+  width: 3.2em;
+  height: 0.6em;
+  border-radius: 0.3em;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  border: 0.08em solid rgba(255, 255, 255, 0.5);
+}
+
+#hud-energy-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #7ef9ff, #c77dff);
+}
+
+/* Barra del jefe */
+#boss-bar {
+  position: absolute;
+  bottom: 0.9em;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 55%;
+  text-align: center;
+  pointer-events: none;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 0 0.1em 0 #000;
+}
+
+.boss-name {
+  font-size: 1.1em;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.2em;
+}
+
+.boss-bar-track {
+  height: 1em;
+  border-radius: 0.5em;
+  border: 0.15em solid #fff;
+  background: rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+#boss-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ff3b3b, #ff9f1c);
+  transition: width 0.3s;
+}
+
+/* Mensajes */
+#toast {
+  position: absolute;
+  top: 4.2em;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 12, 35, 0.8);
+  color: #fff;
+  padding: 0.5em 1.2em;
+  border-radius: 1em;
+  font-weight: bold;
+  pointer-events: none;
+  animation: slide-down 0.3s ease-out;
+  white-space: nowrap;
+}
+
+#level-title {
+  position: absolute;
+  top: 35%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #fff;
+  font-size: 2.4em;
+  font-weight: bold;
+  text-shadow: 0 0.08em 0 #000, 0 0 0.6em rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  animation: title-card 2.8s ease-in-out forwards;
+}
+
+#level-title small {
+  display: block;
+  font-size: 0.45em;
+  letter-spacing: 0.25em;
+  color: var(--color-star);
+}
+
+/* ---------------------------------------------------------------------
+   Diálogos
+   --------------------------------------------------------------------- */
+#dialogue {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 1em;
+  min-height: 7em;
+  background: var(--color-panel);
+  border: 0.25em solid var(--color-panel-border);
+  border-radius: 1em;
+  padding: 1.4em 1.4em 1.8em;
+  box-shadow: 0 0.4em 0 rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: slide-up 0.3s ease-out;
+}
+
+#dialogue-name {
+  position: absolute;
+  top: -1.1em;
+  left: 1em;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: bold;
+  padding: 0.25em 0.9em;
+  border-radius: 0.7em;
+  border: 0.18em solid var(--color-panel-border);
+}
+
+#dialogue-name.narrator { background: #7d6bb0; }
+#dialogue-name.luna { background: #e778a8; }
+#dialogue-name.villain { background: #6b2e8a; }
+
+#dialogue-text {
+  font-size: 1.2em;
+  line-height: 1.45;
+}
+
+#dialogue-next {
+  position: absolute;
+  right: 1em;
+  bottom: 0.4em;
+  font-size: 0.8em;
+  opacity: 0.6;
+  animation: blink 1.2s infinite;
+}
+
+#dialogue-skip {
+  position: absolute;
+  top: -1.1em;
+  right: 1em;
+}
+
+/* ---------------------------------------------------------------------
+   Pantallas y paneles
+   --------------------------------------------------------------------- */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 8, 30, 0.55);
+  animation: fade-in 0.35s ease-out;
+}
+
+#screen-menu {
+  background: transparent;
+  justify-content: flex-start;
+  padding-top: 2.2em;
+}
+
+.title-block {
+  text-align: center;
+}
+
+.game-title {
+  margin: 0;
+  font-size: 3.6em;
+  color: #fff3d6;
+  letter-spacing: 0.03em;
+  text-shadow:
+    0 0.06em 0 #c4571a,
+    0 0.12em 0 #7a3410,
+    0 0.2em 0.4em rgba(0, 0, 0, 0.5);
+  animation: float 3s ease-in-out infinite;
+}
+
+.subtitle {
+  margin: 0.4em 0 0;
+  color: #fff;
+  font-size: 1.15em;
+  text-shadow: 0 0.1em 0 rgba(0, 0, 0, 0.6);
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  margin-top: 1.6em;
+  width: 15em;
+}
+
+.menu-footer {
+  position: absolute;
+  bottom: 0.4em;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85em;
+  text-shadow: 0 0.1em 0 #000;
+}
+
+.panel {
+  background: var(--color-panel);
+  border: 0.25em solid var(--color-panel-border);
+  border-radius: 1.1em;
+  padding: 1.2em 2em 1.5em;
+  min-width: 20em;
+  max-width: 90%;
+  max-height: 92%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6em;
+  box-shadow: 0 0.5em 0 rgba(0, 0, 0, 0.35);
+  text-align: center;
+  animation: pop-in 0.3s ease-out;
+}
+
+.panel-wide {
+  width: 46em;
+}
+
+.panel h2 {
+  margin: 0 0 0.2em;
+  font-size: 2em;
+  color: var(--color-primary-dark);
+}
+
+.panel p {
+  margin: 0.2em 0 0.4em;
+  line-height: 1.4;
+}
+
+.title-sad { color: #6b5fa8 !important; }
+.title-victory { color: #e05b8b !important; font-size: 2.3em !important; }
+
+.two-columns {
+  display: flex;
+  gap: 1.5em;
+  text-align: left;
+  align-items: flex-start;
+}
+
+.controls-table {
+  border-collapse: collapse;
+  font-size: 0.95em;
+  flex-shrink: 0;
+}
+
+.controls-table td {
+  padding: 0.25em 0.5em;
+  border-bottom: 0.06em dashed rgba(107, 63, 29, 0.3);
+}
+
+.tips {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.92em;
+  line-height: 1.45;
+}
+
+.tips li { margin-bottom: 0.3em; }
+
+.txt-coin { color: #c48a00; font-weight: bold; }
+.txt-heart { color: var(--color-heart); font-weight: bold; }
+.txt-star { color: #d4a000; font-weight: bold; }
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.05em 0.4em;
+  border-radius: 0.3em;
+  background: #fff;
+  border: 0.08em solid #b9a48f;
+  border-bottom-width: 0.2em;
+  font-family: inherit;
+  font-size: 0.85em;
+  font-weight: bold;
+  text-align: center;
+  color: #3a2618;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5em;
+  width: 100%;
+  font-size: 1.05em;
+  cursor: pointer;
+}
+
+.setting-row input[type="checkbox"] {
+  width: 1.3em;
+  height: 1.3em;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.setting-row input[type="range"] {
+  width: 9em;
+  accent-color: var(--color-primary);
+}
+
+.setting-row select {
+  font: inherit;
+  font-size: 0.9em;
+  padding: 0.15em 0.3em;
+  border-radius: 0.4em;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.3em 1.5em;
+  margin: 0.4em 0 0.6em;
+  font-size: 1.1em;
+  text-align: left;
+}
+
+.stats .stat-value {
+  font-weight: bold;
+  text-align: right;
+  color: var(--color-primary-dark);
+}
+
+/* La pantalla de victoria deja ver abajo a Milo y Luna juntos */
+#screen-victory {
+  justify-content: flex-start;
+  padding-top: 0.8em;
+  background: transparent;
+}
+
+.victory-panel {
+  background: linear-gradient(180deg, rgba(255, 248, 235, 0.95) 0%, rgba(255, 232, 240, 0.95) 100%);
+  padding: 0.8em 2em 1em;
+  gap: 0.3em;
+}
+
+.victory-panel .stats {
+  grid-template-columns: auto auto auto auto;
+  font-size: 1em;
+  margin: 0.2em 0 0.4em;
+}
+
+.button-row {
+  display: flex;
+  gap: 1em;
+}
+
+/* ---------------------------------------------------------------------
+   Botones
+   --------------------------------------------------------------------- */
+.btn {
+  font-family: inherit;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: var(--color-text);
+  background: #fff;
+  border: 0.15em solid var(--color-panel-border);
+  border-bottom-width: 0.3em;
+  border-radius: 0.8em;
+  padding: 0.5em 1.4em;
+  min-width: 12em;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  background: #ffeedd;
+  transform: translateY(-0.1em);
+  outline: none;
+}
+
+.btn:active {
+  transform: translateY(0.1em);
+  border-bottom-width: 0.15em;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  text-shadow: 0 0.08em 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background: #ff9f5f;
+}
+
+.btn-small {
+  font-size: 0.8em;
+  min-width: 0;
+  padding: 0.25em 0.8em;
+}
+
+/* ---------------------------------------------------------------------
+   Controles táctiles
+   --------------------------------------------------------------------- */
+#touch-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.touch-pad {
+  position: absolute;
+  bottom: 1em;
+  display: flex;
+  gap: 0.8em;
+}
+
+.touch-left { left: 1em; }
+.touch-right { right: 1em; }
+
+#touch-controls button {
+  pointer-events: auto;
+  width: 4.2em;
+  height: 4.2em;
+  border-radius: 50%;
+  border: 0.15em solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 1.1em;
+  font-weight: bold;
+  touch-action: none;
+}
+
+#touch-controls button.active {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+#touch-pause {
+  position: absolute;
+  top: 3.6em;
+  right: 0.8em;
+  width: 2.8em !important;
+  height: 2.8em !important;
+  font-size: 0.9em !important;
+}
+
+/* ---------------------------------------------------------------------
+   Fundido entre pantallas
+   --------------------------------------------------------------------- */
+#fade {
+  position: absolute;
+  inset: 0;
+  background: #0b0716;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+#fade.visible {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------
+   Animaciones
+   --------------------------------------------------------------------- */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.45); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.15em); }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(1.5em); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slide-down {
+  from { transform: translate(-50%, -1em); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes title-card {
+  0% { opacity: 0; transform: scale(0.8); }
+  15% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
