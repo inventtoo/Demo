@@ -443,7 +443,7 @@ class Shockwave {
  */
 class RatKing extends Enemy {
   constructor(x, y) {
-    super(x, y, 46, 58);
+    super(x, y, 44, 70);
     this.spawnX = x;
     this.spawnY = y;
     this.isBoss = true;
@@ -627,8 +627,9 @@ class RatKing extends Enemy {
   /** Lanza un abanico de bolas de fuego dirigidas al jugador desde el orbe del báculo. */
   shootFireballs(game) {
     const player = game.player;
-    const originX = this.centerX + this.facing * 20;
-    const originY = this.y - 8;
+    // Las bolas salen del orbe del báculo
+    const originX = this.centerX + this.facing * 27;
+    const originY = this.y - 9;
     const targetX = player.x + player.w / 2;
     const targetY = player.y + player.h / 2;
     const baseAngle = Math.atan2(targetY - originY, targetX - originX);
@@ -685,8 +686,8 @@ class RatKing extends Enemy {
 
     // Estrellitas girando sobre la cabeza cuando está mareado
     if (this.state === 'tired') {
-      const headX = footX + (flip ? -6 : 6);
-      const headY = footY - 76;
+      const headX = footX + (flip ? -12 : 12);
+      const headY = footY - 88;
       for (let i = 0; i < 3; i++) {
         const angle = this.time * 4 + (i * Math.PI * 2) / 3;
         SPRITES.icons.star.draw(ctx, Math.round(headX + Math.cos(angle) * 16) - 3, Math.round(headY + Math.sin(angle) * 4));

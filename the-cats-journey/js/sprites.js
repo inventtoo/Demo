@@ -552,178 +552,303 @@ function buildKnightSprites() {
 
 /* ============================ Rey Rata ============================ */
 
+/*
+  El Rey Rata se monta por piezas sombreadas (como un muñeco articulado):
+  capa, cola, piernas con garras, torso peludo, túnica real con cuello de
+  armiño, brazos, báculo y cabeza. Cada pieza lleva su propia línea de
+  contorno para que se distinga de las demás, y al final se añade un
+  contorno exterior. Los detalles finos (ojos, cicatriz, colmillos,
+  corona) se pintan encima a mano.
+*/
 const RAT_COLORS = {
-  line: '#1f1430',
-  fur: ['#3a3552', '#5b5674', '#7d7896', '#a39fbd', '#c9c6dc'],
-  furDark: ['#2e2a44', '#45405e', '#5b5674', '#7d7896'],
-  belly: ['#7d7896', '#938cae', '#b9b3cf', '#d6d1e6'],
-  pink: ['#9c4f68', '#c46d88', '#e898aa', '#ffc2cf'],
-  cape: ['#4a0c18', '#6e1424', '#9b1d30', '#c42f45'],
-  gold: ['#8a5a00', '#c98a00', '#ffd23f', '#fff3a0'],
-  wood: ['#3b2010', '#5c3a1e', '#7d5430'],
-  orb: ['#1f6b44', '#2fbf6e', '#7ef9a0', '#e8ffe8']
+  line: '#1a1028',
+  fur: ['#2e2944', '#46405e', '#625c7c', '#857f9e', '#aaa5c2'],
+  furDark: ['#241f38', '#36304e', '#4a4464', '#625c7c'],
+  belly: ['#857f9e', '#a19bb9', '#beb9d2', '#dad6e8'],
+  skin: ['#8a4a62', '#b8667f', '#e08ea4', '#ffbccb'],
+  robe: ['#2a0f3e', '#45185f', '#622384', '#8236a8', '#a356c8'],
+  cape: ['#3d0812', '#5e0f1f', '#86182d', '#b0263f', '#d84a5e'],
+  lining: ['#1f0b30', '#33134a'],
+  gold: ['#7a4a00', '#b88200', '#ecb52a', '#ffe17a', '#fff6c8'],
+  ermine: ['#b9b4cc', '#dedaea', '#f6f4fb', '#ffffff'],
+  wood: ['#2b170a', '#4a2c16', '#6e4626', '#8f6236'],
+  orb: ['#155c3a', '#22a35f', '#5ff099', '#c8ffdc', '#ffffff'],
+  claw: '#f2ead8'
 };
 
 const RAT_PALETTE = {
-  O: '#1f1430', Y: '#ffd23f', y: '#c98a00', Z: '#fff3a0', J: '#e63946', W: '#ffffff',
-  E: '#ff2a2a', e: '#a00010', K: '#1d1228', X: '#2b2440', P: '#e898aa', F: '#7d7896', f: '#5b5674'
+  O: '#1a1028', Y: '#ecb52a', y: '#b88200', Z: '#fff6c8', J: '#e63946', j: '#9b1d30', B: '#4ea6ff',
+  W: '#ffffff', E: '#ff3030', e: '#a00010', K: '#1d1228', G: '#ffe17a', f: '#46405e', F: '#625c7c'
 };
 
+// Corona con joyas (15x11)
 const RAT_CROWN = `
-.O....O....O.
-OZO..OZO..OYO
-OYO..OYO..OYO
-OYYOOYYYOOYyO
-OYZYYYJYYYYyO
-OYYYYJJJYYYyO
-OyYYYYJYYYyyO
-OyyyyyyyyyyyO
-.OOOOOOOOOOO.
+..O.....O.....O..
+.OZO...OZO...OGO.
+.OYO..OYJYO..OYO.
+OYZYOOYJJJYOOYYyO
+OYYYYYYYJYYYYYYyO
+OYBYYYJYYYJYYBYyO
+OYYYYyYYYYYyYYyyO
+OyyyyyyyyyyyyyyyO
+.OOOOOOOOOOOOOOO.
 `;
+
 const RAT_EYES = {
   angry: `
-.OOOO.
-OWWEEO
-OWEKeO
-OEEeeO
-.OOOO.
+.OOOOO.
+OEEEWWO
+OEEKEeO
+.OeeeO.
+..OOO..
 `,
   tired: `
-OOOOO
-fff.O
-.OO.O
-.O..O
-.OOOO
+.OOOO.
+ffffOO
+.OOO.O
+.O.fO.
+.OOO..
 `
 };
 
+/** Elige un color de una rampa según la luz (de -1 a 1). */
+function rampByLight(ramp, light) {
+  return ramp[clamp(Math.round((light * 0.5 + 0.5) * (ramp.length - 1)), 0, ramp.length - 1)];
+}
+
 /**
- * Dibuja un fotograma del Rey Rata (mirando a la derecha).
+ * Dibuja un fotograma del Rey Rata (mirando a la derecha) en un lienzo de 88x100.
  * @param {object} pose Desplazamientos de las piezas para cada postura
  */
 function drawRatKingFrame(pose) {
   const {
-    headX = 0, headY = 0, bodyY = 0, bodyX = 0, feet = [0, 0], staffY = 0, orbRadius = 3,
-    eyes = 'angry', fly = false, capeWave = 0, tongue = false, stretch = 0
+    bodyX = 0, bodyY = 0, lean = 0, headX = 0, headY = 0, feet = [0, 0], staffY = 0, orbRadius = 3,
+    eyes = 'angry', fly = false, capeWave = 0, tongue = false, squash = 0, crownTilt = 0, armRaise = 0
   } = pose;
   const C = RAT_COLORS;
-  const b = new PixelBuffer(76, 74);
-  const bx = 36 + bodyX;
-  const by = 50 + bodyY;
+  const L = C.line;
+  const TOP = 8;                     // margen superior para el orbe levantado
+  const b = new PixelBuffer(88, 92 + TOP);
+  const groundY = 90 + TOP;
+  const cx = 40 + bodyX;            // centro del torso
+  const cy = 56 + TOP + bodyY + squash;
+  const shoulderX = cx + lean;      // los hombros se inclinan hacia delante al embestir
 
-  // Capa (detrás de todo)
-  for (let y = 34 + bodyY; y <= 70; y++) {
-    const t = (y - 34 - bodyY) / (36 - bodyY);
-    const left = Math.round(20 + bodyX - t * (16 + capeWave) + Math.sin(y * 0.35 + capeWave) * 1.5);
-    const right = 40 + bodyX;
-    for (let x = left; x <= right; x++) {
-      // La luz viene de la izquierda: el borde exterior de la capa es más claro
-      const shade = clamp(3 - Math.floor(((x - left) / Math.max(1, right - left)) * 4), 1, 3);
-      b.set(x, y, y > 67 ? C.cape[1] : C.cape[shade]);
-    }
-    b.set(left, y, RAT_COLORS.line);
+  // ---------------- Capa (detrás de todo) ----------------
+  const capeTop = cy - 18;
+  const capePoints = [
+    [shoulderX - 14, capeTop - 2], [shoulderX + 4, capeTop - 3], [cx + 6, groundY - 2],
+    [cx - 37 - capeWave * 2, groundY], [cx - 35 - capeWave, groundY - 16], [cx - 27, cy - 6]
+  ];
+  b.polygon(capePoints, (x, y) => {
+    // Pliegues: bandas verticales de luz y sombra que ondulan
+    const fold = Math.sin((x - cx) * 0.55 + y * 0.06 + capeWave);
+    const depth = (x - (cx - 36)) / 40;
+    let color = rampByLight(C.cape, fold * 0.45 - depth * 0.9 + 0.35);
+    if (y > groundY - 6) color = y > groundY - 4 ? C.lining[0] : C.lining[1];
+    return color;
+  }, L);
+  // Ribete dorado en el borde exterior de la capa
+  for (let i = 0; i <= 30; i++) {
+    const t = i / 30;
+    const x = Math.round(lerp(cx - 27, cx - 35 - capeWave, t));
+    const y = Math.round(lerp(cy - 6, groundY - 16, t));
+    b.set(x + 1, y, C.gold[3]);
+    b.set(x + 2, y, C.gold[2]);
   }
 
-  // Cola: una curva gruesa que se va afinando
-  for (let i = 0; i <= 40; i++) {
-    const t = i / 40;
-    const x = lerp(lerp(22 + bodyX, 2, t), lerp(2, 6, t), t);
-    const y = lerp(lerp(66, 64, t), lerp(64, 40 + capeWave * 2, t), t);
-    const thickness = 2.6 - t * 1.8;
-    b.ellipse(x, y, thickness + 1, thickness + 1, RAT_COLORS.line);
-  }
-  for (let i = 0; i <= 40; i++) {
-    const t = i / 40;
-    const x = lerp(lerp(22 + bodyX, 2, t), lerp(2, 6, t), t);
-    const y = lerp(lerp(66, 64, t), lerp(64, 40 + capeWave * 2, t), t);
-    const thickness = 2.6 - t * 1.8;
-    b.shadedEllipse(x, y, thickness, thickness, C.pink);
-  }
+  // Cuello alto de la capa detrás de la cabeza (silueta de villano)
+  const collarPoints = [[shoulderX - 15, capeTop + 2], [shoulderX - 21, capeTop - 17], [shoulderX - 9, capeTop - 7],
+    [shoulderX - 1, capeTop - 16], [shoulderX + 5, capeTop + 1]];
+  b.polygon(collarPoints, (x, y) => (x + y) % 5 === 0 ? C.lining[0] : C.lining[1], L);
+  b.line(shoulderX - 20, capeTop - 15, shoulderX - 15, capeTop + 1, C.gold[2]);
+  b.line(shoulderX - 1, capeTop - 14, shoulderX + 4, capeTop, C.gold[2]);
 
-  // Pies
+  // ---------------- Cola segmentada ----------------
+  const tailPoints = [];
+  for (let i = 0; i <= 48; i++) {
+    const t = i / 48;
+    const x = lerp(lerp(cx - 10, cx - 34, t), lerp(cx - 34, cx - 30 - capeWave, t), t);
+    const y = lerp(lerp(groundY - 6, groundY - 2, t), lerp(groundY - 2, groundY - 34, t), t);
+    tailPoints.push([x, y, 3 - t * 2.2]);
+  }
+  for (const [x, y, r] of tailPoints) b.ellipse(x, y, r + 1, r + 1, L);
+  tailPoints.forEach(([x, y, r], i) => {
+    b.shadedEllipse(x, y, r, r, C.skin);
+    if (i % 5 === 0 && r > 1.2) b.set(Math.round(x), Math.round(y), C.skin[0]); // anillos de la cola
+  });
+
+  // ---------------- Brazo trasero (asoma por detrás) ----------------
+  b.contouredEllipse(shoulderX - 17, cy - 4, 5, 9, C.robe.slice(0, 4), L);
+  b.contouredEllipse(shoulderX - 19, cy + 7, 3.5, 3.5, C.skin, L);
+
+  // ---------------- Piernas y pies con garras ----------------
   if (!fly) {
-    b.contouredEllipse(26 + bodyX + feet[0], 70, 7, 3, C.pink, RAT_COLORS.line);
-    b.contouredEllipse(44 + bodyX + feet[1], 70, 7, 3, C.pink, RAT_COLORS.line);
-  }
-
-  // Cuerpo y barriga
-  b.contouredEllipse(bx, by, 17 + stretch, 18 - stretch, C.fur, RAT_COLORS.line);
-  b.shadedEllipse(bx + 5, by + 2, 10, 13 - stretch, C.belly);
-  // Cinturón dorado con hebilla
-  for (let x = bx - 17; x <= bx + 17; x++) {
-    for (let y = by + 5; y <= by + 7; y++) {
-      if (b.isOpaque(x, y) && b.get(x, y) !== Color.toInt(RAT_COLORS.line)) b.set(x, y, y === by + 5 ? C.gold[3] : C.gold[2]);
+    for (const [legX, footOffset, isBack] of [[cx - 9, feet[0], true], [cx + 8, feet[1], false]]) {
+      const ramp = isBack ? C.furDark : C.fur;
+      const footX = legX + footOffset;
+      // Muslo y espinilla
+      b.contouredEllipse(legX, cy + 16, 7, 8, ramp, L, { ditherNoise: 0.3, seed: 3 });
+      b.polygon([[legX - 4, cy + 18], [legX + 4, cy + 18], [footX + 3, groundY - 3], [footX - 4, groundY - 3]], (x) => ramp[x < legX ? 2 : 1], L);
+      // Pie rosado con dedos y garras
+      b.contouredEllipse(footX + 2, groundY - 2, 8, 3, C.skin, L);
+      for (let toe = 0; toe < 3; toe++) {
+        const toeX = footX + 6 + toe * 2;
+        b.set(toeX, groundY - 3, L);
+        b.set(toeX + 1, groundY - 1, C.claw);
+        b.set(toeX + 2, groundY - 1, C.claw);
+      }
     }
   }
-  b.rect(bx + 3, by + 4, 5, 5, RAT_COLORS.line);
-  b.rect(bx + 4, by + 5, 3, 3, C.gold[1]);
 
-  // Báculo (detrás del brazo)
-  const staffX = 56 + bodyX;
-  const staffTop = 18 + staffY + bodyY;
-  b.rect(staffX - 2, staffTop, 5, 68 - staffTop, RAT_COLORS.line);
-  b.rect(staffX - 1, staffTop + 1, 2, 66 - staffTop, C.wood[2]);
-  b.rect(staffX + 1, staffTop + 1, 1, 66 - staffTop, C.wood[0]);
-  b.contouredEllipse(staffX, staffTop - 1, 3, 2, C.gold, RAT_COLORS.line);
-  b.ellipse(staffX + 0.5, staffTop - 4 - orbRadius + 2, orbRadius + 1, orbRadius + 1, RAT_COLORS.line);
-  b.glowDisc(staffX + 0.5, staffTop - 4 - orbRadius + 2, orbRadius, C.orb);
+  // ---------------- Torso peludo (forma de pera, encorvado) ----------------
+  b.contouredEllipse(cx + Math.round(lean / 2), cy - 2, 18, 20 - squash, C.fur, L, { ditherNoise: 0.35, seed: 1 });
 
-  // Brazo con la mano sujetando el báculo
-  b.contouredEllipse(bx + 12, by - 6 + Math.round(staffY / 3), 7, 5, C.fur, RAT_COLORS.line);
-  b.contouredEllipse(staffX, by - 6 + Math.round(staffY / 3), 3, 3, C.pink, RAT_COLORS.line);
+  // ---------------- Túnica real ----------------
+  const robeTop = cy - 10;
+  const hemY = cy + 25;
+  // Silueta de campana: estrecha en los hombros y ancha abajo
+  const robePoints = [
+    [shoulderX - 15, robeTop + 3], [shoulderX - 8, robeTop - 2], [cx + 3, cy + 2], [shoulderX + 13, robeTop - 3],
+    [shoulderX + 18, robeTop + 3], [cx + 21, cy + 6], [cx + 24, hemY - 3], [cx + 22, hemY],
+    [cx - 23, hemY], [cx - 25, hemY - 3], [cx - 20, cy + 6]
+  ];
+  b.polygon(robePoints, (x, y) => {
+    // Pliegues en abanico que nacen del cinturón
+    const fanX = (x - cx) / Math.max(1, (y - cy) * 0.35 + 6);
+    const fold = Math.sin(fanX * 3.2) * 0.35;
+    let color = rampByLight(C.robe, (cx - x) / 26 + fold + 0.1);
+    if (y >= hemY - 2) color = y === hemY - 2 ? C.gold[3] : C.gold[1];
+    else if (y === hemY - 4 && (x % 4 === 0)) color = C.gold[2]; // bordado
+    else if (y === hemY - 5 && (x % 4 === 1 || x % 4 === 3)) color = C.gold[1];
+    return color;
+  }, L);
+  // Pecho claro en el escote en V
+  b.polygon([[shoulderX - 6, robeTop - 1], [cx + 3, cy + 2], [shoulderX + 11, robeTop - 2], [shoulderX + 3, robeTop - 6]], (x, y) => rampByLight(C.belly, (cx + 3 - x) / 10 + (cy - y) / 30), null);
+  // Ribete dorado del escote
+  b.line(shoulderX - 7, robeTop - 1, cx + 3, cy + 3, C.gold[3]);
+  b.line(cx + 3, cy + 3, shoulderX + 12, robeTop - 2, C.gold[2]);
+  // Cinturón con hebilla
+  for (let x = cx - 24; x <= cx + 24; x++) {
+    for (let y = cy + 5; y <= cy + 7; y++) {
+      if (b.isOpaque(x, y) && b.get(x, y) !== Color.toInt(L)) b.set(x, y, y === cy + 5 ? C.gold[3] : y === cy + 7 ? C.gold[1] : C.gold[2]);
+    }
+  }
+  b.rect(cx + 1, cy + 4, 7, 5, L);
+  b.rect(cx + 2, cy + 5, 5, 3, C.gold[1]);
+  b.set(cx + 4, cy + 6, '#e63946');
+  b.set(cx + 3, cy + 5, C.gold[4]);
 
-  // Cabeza: orejas, cara y hocico
-  const hx = 40 + headX + bodyX;
-  const hy = 25 + headY + bodyY;
-  b.contouredEllipse(hx - 12, hy - 12, 7, 7, C.furDark, RAT_COLORS.line);
-  b.shadedEllipse(hx - 12, hy - 12, 4, 4, C.pink);
-  b.contouredEllipse(hx, hy, 13, 10, C.fur, RAT_COLORS.line);
-  b.contouredEllipse(hx + 4, hy - 13, 6, 6, C.fur, RAT_COLORS.line);
-  b.shadedEllipse(hx + 4, hy - 13, 3.5, 3.5, C.pink);
-  b.contouredEllipse(hx + 14, hy + 3, 9, 5.5, C.fur, RAT_COLORS.line);
-  // Mejilla clara
-  b.shadedEllipse(hx + 8, hy + 5, 5, 3, C.belly);
+  // Cuello de armiño (blanco con puntitas negras)
+  for (let i = 0; i <= 7; i++) {
+    const t = i / 7;
+    const x = lerp(cx - 17, shoulderX + 16, t);
+    const y = robeTop - 2 - Math.sin(t * Math.PI) * 5 + 2;
+    b.contouredEllipse(x, y, 3.5, 3, C.ermine, L);
+    if (i % 2 === 1) { b.set(Math.round(x), Math.round(y), L); b.set(Math.round(x), Math.round(y) + 1, L); }
+  }
 
-  // Detalles dibujados a mano encima
-  b.ellipse(hx + 22, hy + 1, 2.5, 2.5, RAT_COLORS.line);
-  b.shadedEllipse(hx + 22, hy + 1, 2, 2, C.pink);
-  b.set(hx + 21, hy, '#ffffff');
-  // Dientes
-  b.rect(hx + 15, hy + 7, 6, 5, RAT_COLORS.line);
-  b.rect(hx + 16, hy + 7, 2, 4, '#fffbe6');
-  b.rect(hx + 19, hy + 7, 1, 4, '#fffbe6');
-  b.set(hx + 18, hy + 7, '#fffbe6');
+  // ---------------- Báculo ornamentado ----------------
+  const staffX = shoulderX + 27;
+  const staffTop = 18 + TOP + staffY + bodyY;
+  b.rect(staffX - 2, staffTop, 5, groundY - staffTop, L);
+  for (let y = staffTop + 1; y < groundY - 1; y++) {
+    // Madera retorcida: una franja clara en diagonal que se repite
+    const twist = (y - staffTop) % 6;
+    b.set(staffX - 1, y, twist < 3 ? C.wood[3] : C.wood[2]);
+    b.set(staffX, y, twist < 3 ? C.wood[2] : C.wood[1]);
+    b.set(staffX + 1, y, C.wood[0]);
+  }
+  for (const ringY of [staffTop + 10, staffTop + 30, groundY - 8]) {
+    b.rect(staffX - 2, ringY, 5, 2, C.gold[2]);
+    b.set(staffX - 2, ringY, C.gold[4]);
+  }
+  // Garra dorada que sujeta el orbe
+  const orbY = staffTop - 3 - orbRadius;
+  for (const side of [-1, 1]) {
+    b.line(staffX, staffTop, staffX + side * (orbRadius + 2), orbY + 1, L);
+    b.line(staffX + side, staffTop - 1, staffX + side * (orbRadius + 2), orbY + 2, C.gold[3]);
+    b.set(staffX + side * (orbRadius + 2), orbY, C.gold[4]);
+  }
+  b.ellipse(staffX + 0.5, orbY, orbRadius + 1, orbRadius + 1, L);
+  b.glowDisc(staffX + 0.5, orbY, orbRadius, C.orb);
+
+  // ---------------- Brazo delantero sujetando el báculo ----------------
+  const handY = cy - 8 - armRaise + Math.round(staffY / 3);
+  b.contouredEllipse(shoulderX + 13, cy - 12, 6, 7, C.robe, L);                     // manga
+  b.contouredEllipse(shoulderX + 20, handY + 2, 5, 4, C.robe.slice(1), L);           // antebrazo
+  b.rect(shoulderX + 18, handY - 1, 3, 6, C.gold[2]);                                // puño dorado
+  b.contouredEllipse(staffX, handY + 1, 3.5, 3.5, C.skin, L);                         // mano
+  b.set(staffX + 3, handY, C.claw); b.set(staffX + 3, handY + 2, C.claw);
+
+  // ---------------- Cabeza ----------------
+  const hx = 51 + bodyX + lean + headX;
+  const hy = 25 + TOP + bodyY + headY + squash;
+  // Oreja trasera (con una muesca de alguna pelea)
+  b.contouredEllipse(hx - 12, hy - 11, 7, 7, C.furDark, L);
+  b.shadedEllipse(hx - 12, hy - 11, 4, 4, C.skin);
+  b.set(hx - 8, hy - 17, 0); b.set(hx - 7, hy - 16, 0); b.set(hx - 8, hy - 16, L); b.set(hx - 7, hy - 15, L);
+  // Cráneo
+  b.contouredEllipse(hx, hy, 12, 10, C.fur, L, { ditherNoise: 0.25, seed: 5 });
+  // Hocico afilado (sin línea en la unión, para que nazca de la cabeza): claro arriba, mandíbula pálida
+  b.polygon([[hx + 3, hy - 7], [hx + 12, hy - 5], [hx + 19, hy - 1], [hx + 23, hy + 2], [hx + 21, hy + 5],
+    [hx + 13, hy + 8], [hx + 4, hy + 8]], (x, y) => {
+    if (y > hy + 3) return rampByLight(C.belly, 0.4 - (y - hy - 3) / 5);
+    return rampByLight(C.fur, 0.95 - (y - hy + 6) / 9 - (x - hx) / 60);
+  }, null);
+  // Contorno solo por fuera del hocico (arriba y abajo)
+  b.line(hx + 6, hy - 8, hx + 12, hy - 6, L); b.line(hx + 12, hy - 6, hx + 19, hy - 2, L); b.line(hx + 19, hy - 2, hx + 24, hy + 2, L);
+  b.line(hx + 22, hy + 5, hx + 13, hy + 9, L); b.line(hx + 13, hy + 9, hx + 6, hy + 9, L);
+  b.line(hx + 8, hy - 5, hx + 18, hy - 1, C.fur[4]); // brillo sobre el hocico
+  // Mechones claros en la mejilla
+  b.polygon([[hx - 10, hy + 2], [hx - 13, hy + 8], [hx - 8, hy + 6], [hx - 7, hy + 10], [hx - 3, hy + 6],
+    [hx, hy + 9], [hx + 3, hy + 5]], (x, y) => rampByLight(C.belly, (hx - x) / 12 - (y - hy) / 18 + 0.3), L);
+  // Oreja delantera
+  b.contouredEllipse(hx - 1, hy - 13, 6.5, 6.5, C.fur, L);
+  b.shadedEllipse(hx - 1, hy - 13, 4, 4, C.skin);
+  // Nariz húmeda
+  b.ellipse(hx + 23, hy + 2, 2.5, 2.2, L);
+  b.shadedEllipse(hx + 23, hy + 2, 1.8, 1.6, C.skin);
+  b.set(hx + 22, hy + 1, '#ffffff');
+  // Colmillos y mandíbula
+  b.line(hx + 8, hy + 4, hx + 21, hy + 4, L); // boca
+  b.rect(hx + 16, hy + 5, 5, 5, L);
+  b.rect(hx + 17, hy + 5, 1, 4, '#fffbe6'); b.rect(hx + 18, hy + 5, 1, 3, '#e8dcc0');
+  b.rect(hx + 19, hy + 5, 1, 4, '#fffbe6');
   if (tongue) {
-    b.rect(hx + 12, hy + 8, 4, 4, RAT_COLORS.line);
-    b.rect(hx + 13, hy + 8, 2, 3, C.pink[2]);
+    b.rect(hx + 13, hy + 5, 4, 6, L);
+    b.rect(hx + 14, hy + 5, 2, 5, C.skin[2]);
   }
-  // Ojo y ceja
-  b.paintGrid(RAT_EYES[eyes], RAT_PALETTE, hx + 5, hy - 4);
+  // Ojo, ceja y cicatriz
+  b.paintGrid(RAT_EYES[eyes], RAT_PALETTE, hx + 2, hy - 6);
   if (eyes === 'angry') {
-    b.line(hx + 3, hy - 8, hx + 11, hy - 5, RAT_COLORS.line);
-    b.line(hx + 3, hy - 7, hx + 11, hy - 4, RAT_COLORS.line);
+    b.line(hx + 1, hy - 9, hx + 10, hy - 6, L);
+    b.line(hx + 1, hy - 8, hx + 10, hy - 5, L);
   }
+  b.line(hx + 2, hy - 12, hx, hy + 1, C.skin[1]); // cicatriz sobre el ojo
   // Bigotes
-  b.line(hx + 20, hy + 4, hx + 33, hy - 1, '#2b2440');
-  b.line(hx + 20, hy + 5, hx + 34, hy + 5, '#2b2440');
-  b.line(hx + 20, hy + 6, hx + 32, hy + 11, '#2b2440');
-  // Corona
-  b.paintGrid(RAT_CROWN, RAT_PALETTE, hx - 9, hy - 21);
+  b.line(hx + 19, hy + 1, hx + 32, hy - 4, '#2b2440');
+  b.line(hx + 19, hy + 2, hx + 33, hy + 2, '#2b2440');
+  b.line(hx + 19, hy + 3, hx + 31, hy + 8, '#2b2440');
+  // Corona (algo ladeada cuando está mareado)
+  b.paintGrid(RAT_CROWN, RAT_PALETTE, hx - 12 + crownTilt, hy - 21 + Math.abs(crownTilt));
+
+  b.outline(L);
   return b;
 }
 
 /** Todas las posturas del jefe. */
 function buildRatKingSprites() {
-  const make = (pose) => new Sprite(drawRatKingFrame(pose).toCanvas(), 36, 73);
+  const make = (pose) => new Sprite(drawRatKingFrame(pose).toCanvas(), 40, 99);
   return {
-    idle: [make({}), make({ bodyY: 1, headY: 1, capeWave: 1 })],
-    walk: [make({ feet: [-3, 3], capeWave: 1 }), make({ feet: [3, -3], bodyY: -1, capeWave: 2 })],
-    windup: [make({ staffY: -6, orbRadius: 4 }), make({ staffY: -7, orbRadius: 5, capeWave: 1 })],
-    charge: [make({ headX: 5, headY: 5, bodyX: 2, feet: [-6, 5], capeWave: 4 }),
-      make({ headX: 5, headY: 4, bodyX: 2, feet: [4, -5], capeWave: 5 })],
-    crouch: [make({ headY: 6, bodyY: 3, stretch: 3, feet: [-2, 2] })],
-    tired: [make({ headY: 6, headX: 2, eyes: 'tired', tongue: true, staffY: 6, orbRadius: 2 }),
-      make({ headY: 7, headX: 2, eyes: 'tired', tongue: true, staffY: 6, orbRadius: 2, bodyY: 1 })],
+    idle: [make({}), make({ bodyY: 1, headY: 1, capeWave: 1, orbRadius: 3 })],
+    walk: [make({ feet: [-4, 3], capeWave: 1, bodyY: -1 }), make({ feet: [3, -4], capeWave: 2 })],
+    windup: [make({ staffY: -8, orbRadius: 5, armRaise: 4, headY: -1 }), make({ staffY: -9, orbRadius: 6, armRaise: 5, capeWave: 1, headY: -1 })],
+    charge: [make({ lean: 6, headX: 2, headY: 6, feet: [-7, 6], capeWave: 4, bodyX: 1 }),
+      make({ lean: 6, headX: 2, headY: 5, feet: [5, -6], capeWave: 5, bodyX: 1, bodyY: -1 })],
+    crouch: [make({ squash: 4, headY: 3, feet: [-3, 3], lean: 2 })],
+    tired: [make({ headY: 7, headX: -1, eyes: 'tired', tongue: true, staffY: 6, orbRadius: 2, crownTilt: 2, lean: 2 }),
+      make({ headY: 8, headX: -1, eyes: 'tired', tongue: true, staffY: 6, orbRadius: 2, crownTilt: 3, lean: 2, bodyY: 1 })],
     fly: [make({ fly: true, capeWave: 3 }), make({ fly: true, capeWave: 5, bodyY: -1 })]
   };
 }

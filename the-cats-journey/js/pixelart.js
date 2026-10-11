@@ -153,6 +153,49 @@ class PixelBuffer {
     this.blit(gridToBuffer(text, palette), offsetX, offsetY, flipX);
   }
 
+  /**
+   * Rellena un polígono. colorFn(x, y) devuelve el color de cada píxel,
+   * así se puede sombrear (por ejemplo, más oscuro abajo o a la derecha).
+   */
+  polygon(points, colorFn, edgeColor = null) {
+    // Con edgeColor, los píxeles del borde del polígono se pintan de ese color (contorno interior)
+    const inside = (px, py) => {
+      let isInside = false;
+      for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+        const [xi, yi] = points[i];
+        const [xj, yj] = points[j];
+        if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) isInside = !isInside;
+      }
+      return isInside;
+    };
+    const ys = points.map((p) => p[1]);
+    const minY = Math.floor(Math.min(...ys));
+    const maxY = Math.ceil(Math.max(...ys));
+    for (let y = minY; y <= maxY; y++) {
+      const scanY = y + 0.5;
+      const crossings = [];
+      for (let i = 0; i < points.length; i++) {
+        const [x1, y1] = points[i];
+        const [x2, y2] = points[(i + 1) % points.length];
+        if ((y1 <= scanY && y2 > scanY) || (y2 <= scanY && y1 > scanY)) {
+          crossings.push(x1 + ((scanY - y1) / (y2 - y1)) * (x2 - x1));
+        }
+      }
+      crossings.sort((a, b) => a - b);
+      for (let i = 0; i + 1 < crossings.length; i += 2) {
+        for (let x = Math.round(crossings[i]); x < Math.round(crossings[i + 1]); x++) {
+          let color = typeof colorFn === 'function' ? colorFn(x, y) : colorFn;
+          if (edgeColor) {
+            const cx = x + 0.5;
+            const cy = y + 0.5;
+            if (!inside(cx - 1, cy) || !inside(cx + 1, cy) || !inside(cx, cy - 1) || !inside(cx, cy + 1)) color = edgeColor;
+          }
+          if (color) this.set(x, y, color);
+        }
+      }
+    }
+  }
+
   /** Elipse rellena de un solo color. */
   ellipse(cx, cy, rx, ry, color) {
     for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {

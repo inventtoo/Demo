@@ -508,7 +508,7 @@ const PORTRAITS = {
     getSprite: (time) => SPRITES.luna.idle[(time % 3) > 2.85 ? 2 : 0]
   },
   villain: {
-    background: '#4a2a5a', backgroundLight: '#5a3670', crop: [32, 4, 28, 28], scale: 2, offsetY: 0,
+    background: '#4a2a5a', backgroundLight: '#5a3670', crop: [37, 14, 28, 28], scale: 2, offsetY: 0,
     getSprite: () => SPRITES.ratKing.idle[0]
   }
 };
